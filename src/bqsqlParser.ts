@@ -11,8 +11,9 @@ export class BqsqlParser {
     private static regDistinct = RegExp(/^distinct\W+/i);
     private static regAsValue = RegExp(/^as\W+value\W+/i);
     private static regAsStruct = RegExp(/^as\W+struct\W+/i);
-    private static regStar = RegExp(/^*\W+/i);
-    private static regAnyWord = RegExp(/^\b\W+/i);
+    private static regStar = RegExp(/^\*\W+/i);
+    private static regAnyWord = RegExp(/^([A-z]+|[0-9]+|_)(\W+|,)/i);
+    private static regFrom = RegExp(/^from\W+/i);
 
     public static parse(bsqlStatement: string): BqsqlDocument {
 
@@ -50,9 +51,6 @@ export class BqsqlParser {
                     //try to find WITH
                     break;
                 case 'S': //try to find SELECT
-
-                    debugger;
-
                     const result = BqsqlParser.handleSelect(bsqlStatement, textPosition);
                     items.push(result[0]);
                     textPosition = result[1];
@@ -147,17 +145,49 @@ export class BqsqlParser {
         //     return BqsqlParser.handleUnknown(bsqlStatement, textPosition);
         // }
 
-        debugger;
-        const next = bsqlStatement.substring(textPosition.textIndex);
+        const item = {
+            type: BqsqlDocumentItemType.query,
+            all: false,
+            distinct: false,
+            asValue: false,
+            asStruct: false
+        } as BqsqlDocumentQuery;
 
+        while (true) {
+            
+            const next = bsqlStatement.substring(newPosition.textIndex);
+            debugger;
+
+            if (BqsqlParser.regFrom.exec(next)?.length === 1) { break; }
+
+            switch (1) {
+                case BqsqlParser.regAll.exec(next)?.length:
+                    item.all = true;
+                    newPosition = BqsqlParser.handleNonCharactersAfter(bsqlStatement, newPosition, 3);
+                    break;
+                case BqsqlParser.regDistinct.exec(next)?.length:
+                    item.distinct = true;
+                    newPosition = BqsqlParser.handleNonCharactersAfter(bsqlStatement, newPosition, 8);
+                    break;
+                case BqsqlParser.regAsValue.exec(next)?.length:
+                    break;
+                case BqsqlParser.regAsStruct.exec(next)?.length:
+                    break;
+                case BqsqlParser.regStar.exec(next)?.length:
+                    break;
+                case BqsqlParser.regAnyWord.exec(next)?.length:
+                    const match = BqsqlParser.regAnyWord.exec(next);
+                    debugger;
+                    newPosition = BqsqlParser.handleNonCharactersAfter(bsqlStatement, newPosition, 8);
+                    break;
+                default:
+                    throw new Error('handleSelect unexpected');
+            }
+        }
 
         //inside select
         //*
         //
-
-        const item = {
-            type: BqsqlDocumentItemType.query
-        } as BqsqlDocumentQuery;
 
         // const newIndex = bsqlStatement.indexOf('\n', textPosition.textIndex);
 

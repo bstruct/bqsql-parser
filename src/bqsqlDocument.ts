@@ -31,6 +31,7 @@ export interface BqsqlDocumentQuery extends BqsqlDocumentItem {
     asStruct: boolean;
     selectList: string[];
     from: string | null;
+    joins: string[];
     where: string | null;
     groupBy: string | null;
     having: string | null;

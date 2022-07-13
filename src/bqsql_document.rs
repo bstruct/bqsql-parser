@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 #[derive(Debug, Clone, Copy)]
 pub struct BqsqlDocument {
     pub document_type: BqsqlDocumentType,
-    // pub items: BqsqlDocumentItem,
+    pub items: BqsqlDocumentItems,
 }
 
 #[wasm_bindgen]
@@ -14,16 +14,22 @@ pub enum BqsqlDocumentType {
     QUERY = 1,
 }
 
-// #[wasm_bindgen]
-// #[derive(Debug, Clone, Copy)]
-// pub struct BqsqlDocumentItem {
-//     pub item_type: BqsqlDocumentItemType,
-// }
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy)]
+pub struct BqsqlDocumentItems {
 
-// #[wasm_bindgen]
-// #[derive(Debug, Clone, Copy)]
-// pub enum BqsqlDocumentItemType {
-//     UNKNOWN = 0,
-//     COMMENT = 1,
-//     QUERY = 2,
-// }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy)]
+pub struct BqsqlDocumentItem {
+    pub item_type: BqsqlDocumentItemType,
+}
+
+#[wasm_bindgen]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum BqsqlDocumentItemType {
+    UNKNOWN = 0,
+    COMMENT = 1,
+    QUERY = 2,
+}

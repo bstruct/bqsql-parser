@@ -23,16 +23,19 @@ impl BqsqlDocument {
 
 fn handle_comment(bqsql: &str, position: BqsqlDocumentPosition) -> Option<BqsqlDocumentItem> {
     lazy_static! {
-        static ref RE: Regex = Regex::new("--.").unwrap();
+        static ref RE: Regex = Regex::new(r"(\s)?--.").unwrap();
     }
-    if let Some(_comment_match) = RE.find_at(bqsql, position.index) {
+    if let Some(comment_match) = RE.find_at(bqsql, position.index) {
+        // print!(comment_match.);
+        let _pos2 = comment_match.range();
+        let _pos1 = comment_match.start();
+
         return Some(BqsqlDocumentItem {
             item_type: BqsqlDocumentItemType::COMMENT,
             from: BqsqlDocumentPosition::beginning_text(),
             to: BqsqlDocumentPosition::beginning_text(),
         });
     }
-
     None
 }
 
@@ -55,11 +58,17 @@ mod tests {
         assert_eq!(BqsqlDocumentType::UNKNOWN, document.document_type);
         assert_eq!(1, document.items.len());
         assert_eq!(BqsqlDocumentItemType::COMMENT, document.items[0].item_type);
+        assert_eq!(0, document.items[0].from.column);
+        assert_eq!(0, document.items[0].from.line);
+        assert_eq!(0, document.items[0].from.index);
+        // assert_eq!(15, document.items[0].to.column);
+        // assert_eq!(0, document.items[0].to.line);
+        // assert_eq!(15, document.items[0].to.index);
     }
 
     #[test]
     fn space_comment_only() {
-        let document = BqsqlDocument::parse("  \t --super comment");
+        let document = BqsqlDocument::parse("   --super comment");
 
         assert_eq!(BqsqlDocumentType::UNKNOWN, document.document_type);
         assert_eq!(1, document.items.len());
@@ -80,8 +89,8 @@ mod tests {
         assert_eq!(BqsqlDocumentType::QUERY, document.document_type);
         assert_eq!(2, document.items.len());
         assert_eq!(BqsqlDocumentItemType::COMMENT, document.items[0].item_type);
-        assert_eq!(1, document.items[0].from.column);
-        assert_eq!(1, document.items[0].from.line);
-        assert_eq!(1, document.items[0].from.index);
+        assert_eq!(0, document.items[0].from.column);
+        assert_eq!(0, document.items[0].from.line);
+        assert_eq!(0, document.items[0].from.index);
     }
 }

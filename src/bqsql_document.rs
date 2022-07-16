@@ -27,9 +27,19 @@ pub struct BqsqlDocumentItem {
 
 #[derive(Serialize)]
 pub struct BqsqlDocumentPosition {
-    pub line: i8,
-    pub column: i8,
-    pub index: i8,
+    pub line: usize,
+    pub column: usize,
+    pub index: usize,
+}
+
+impl BqsqlDocumentPosition {
+    pub fn beginning_text() -> BqsqlDocumentPosition {
+        BqsqlDocumentPosition {
+            column: 0,
+            line: 0,
+            index: 0,
+        }
+    }
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq)]

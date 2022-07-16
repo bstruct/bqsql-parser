@@ -6,35 +6,34 @@ impl BqsqlDocument {
     pub fn parse(bqsql: &str) -> BqsqlDocument {
         // print!("{}", bqsql);
 
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"--.").unwrap();
-        }
+        let position = BqsqlDocumentPosition::beginning_text();
 
         let mut items = Vec::new();
 
-        let comment = RE.find_at(bqsql, 0);
-        if !comment.is_none() {
-            items.push(BqsqlDocumentItem {
-                item_type: BqsqlDocumentItemType::COMMENT,
-                from: BqsqlDocumentPosition {
-                    column: 0,
-                    index: 0,
-                    line: 0,
-                },
-                to: BqsqlDocumentPosition {
-                    column: 0,
-                    index: 0,
-                    line: 0,
-                },
-            });
+        if let Some(comment) = handle_comment(bqsql, position) {
+            items.push(comment);
         }
 
         BqsqlDocument {
             document_type: BqsqlDocumentType::UNKNOWN,
-            // items: String::from("qwer")
             items: items,
         }
     }
+}
+
+fn handle_comment(bqsql: &str, position: BqsqlDocumentPosition) -> Option<BqsqlDocumentItem> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new("--.").unwrap();
+    }
+    if let Some(_comment_match) = RE.find_at(bqsql, position.index) {
+        return Some(BqsqlDocumentItem {
+            item_type: BqsqlDocumentItemType::COMMENT,
+            from: BqsqlDocumentPosition::beginning_text(),
+            to: BqsqlDocumentPosition::beginning_text(),
+        });
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -59,12 +58,30 @@ mod tests {
     }
 
     #[test]
+    fn space_comment_only() {
+        let document = BqsqlDocument::parse("  \t --super comment");
+
+        assert_eq!(BqsqlDocumentType::UNKNOWN, document.document_type);
+        assert_eq!(1, document.items.len());
+        assert_eq!(BqsqlDocumentItemType::COMMENT, document.items[0].item_type);
+        // assert_eq!(4, document.items[0].from.column);
+        // assert_eq!(1, document.items[0].from.line);
+        // assert_eq!(4, document.items[0].from.index);
+        // assert_eq!(19, document.items[0].to.column);
+        // assert_eq!(1, document.items[0].to.line);
+        // assert_eq!(19, document.items[0].to.index);
+    }
+
+    #[test]
+    #[ignore]
     fn comment_and_tiny_query() {
         let document = BqsqlDocument::parse("--super comment\nSELECT 2+2");
 
-        assert_eq!(BqsqlDocumentType::UNKNOWN, document.document_type);
+        assert_eq!(BqsqlDocumentType::QUERY, document.document_type);
         assert_eq!(2, document.items.len());
         assert_eq!(BqsqlDocumentItemType::COMMENT, document.items[0].item_type);
+        assert_eq!(1, document.items[0].from.column);
+        assert_eq!(1, document.items[0].from.line);
+        assert_eq!(1, document.items[0].from.index);
     }
-
 }

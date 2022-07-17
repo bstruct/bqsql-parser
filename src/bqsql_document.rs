@@ -19,12 +19,6 @@ pub struct BqsqlDocumentItem {
     pub to: BqsqlDocumentPosition,
 }
 
-// #[derive(Serialize)]
-// pub struct BqsqlDocumentItemComment {
-//     pub from: BqsqlDocumentPosition,
-//     pub to: BqsqlDocumentPosition,
-// }
-
 #[derive(Serialize)]
 pub struct BqsqlDocumentPosition {
     pub line: usize,

@@ -1,5 +1,3 @@
-// #[cfg(test)]
-// mod bqsql_document_parser_test {
 use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType, BqsqlDocumentType};
 
 #[test]

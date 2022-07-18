@@ -104,4 +104,22 @@ fn comment_and_tiny_query() {
     // assert_eq!(1, document.items[1].to.line);
     // assert_eq!(16, document.items[1].to.index);
 }
-// }
+
+
+#[test]
+fn correct_queries_file() {
+
+    let correct_queries = include_str!("correct_queries.bqsql");
+    let document = BqsqlDocument::parse(correct_queries);
+
+    // assert_eq!(BqsqlDocumentType::QUERY, document.document_type);
+    assert_eq!(3, document.items.len());
+    assert_eq!(BqsqlDocumentItemType::QUERY, document.items[1].item_type);
+    assert_eq!(0, document.items[1].from.column);
+    assert_eq!(1, document.items[1].from.line);
+    assert_eq!(16, document.items[1].from.index);
+    // assert_eq!(0, document.items[1].to.column);
+    // assert_eq!(1, document.items[1].to.line);
+    // assert_eq!(16, document.items[1].to.index);
+}
+

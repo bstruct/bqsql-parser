@@ -63,6 +63,12 @@ fn handle_query(bqsql: &str, position: &BqsqlDocumentPosition) -> Option<BqsqlDo
     if let Some(select_match) = RE.find(&bqsql[position.index..]) {
         let end = select_match.end();
 
+        //find the position of the word "SELECT"
+
+        //const or simple calculation as type, example: "hi" AS name, or 1 AS number, or 2+2 as another_number  
+        //column with potential alias
+
+
         return Some(BqsqlDocumentItem {
             item_type: BqsqlDocumentItemType::QUERY,
             from: BqsqlDocumentPosition::move_to_non_white(bqsql, position),
@@ -104,4 +110,4 @@ fn test_handle_query_new_line_space() {
 }
 
 #[cfg(test)]
-mod bqsql_document_parser_test;
+mod test_select;

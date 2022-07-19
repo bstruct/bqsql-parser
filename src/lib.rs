@@ -3,7 +3,6 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use crate::bqsql_document::BqsqlDocument;
 mod bqsql_document;
 mod bqsql_document_parser;
-mod bqsql_document_position;
 
 #[wasm_bindgen]
 pub fn parse(bqsql: &str) -> JsValue {

@@ -43,7 +43,9 @@ impl BqsqlDocument {
 
 fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
     lazy_static! {
-        static ref RE: Regex = Regex::new("(\".\")|(\\d?\\.\\d?)|(--.*)|\\b").unwrap();
+        static ref RE: Regex = Regex::new("(--.*$)|(\\d?\\.\\d?)|\\b").unwrap();
+
+        //|(\".+\")
     }
 
     let mut tokens: Vec<BqsqlDocumentToken> = Vec::new();

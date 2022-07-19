@@ -39,6 +39,70 @@ impl BqsqlDocument {
     }
 }
 
+fn parse_tokens(bqsql: &str) -> Vec<String> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"(--.*)|\b").unwrap();
+    }
+
+    // let mut line: usize = 0;
+
+    let mut split1 = RE.find_iter(bqsql).map(|m| m.start())
+    .collect::<Vec<usize>>();
+
+    let mut previous_start: Option<usize> = None;
+
+    // let v = Vec::from(..split1);
+    split1.push(bqsql.len());
+
+    for start in split1 {
+        if let Some(previous) = previous_start {
+            let partial = bqsql[previous..start].to_string();
+            println!("{}", partial);
+        }
+        previous_start = Some(start);
+    }
+    // for m in split1 {
+    //     // for c1 in c.iter() {
+    //     //     if let Some(m) = c1 {
+
+    //     let b = m.start();
+    //     let e = m.end();
+    //     let s = m.as_str().to_string();
+
+    // println!("{}", split1.join(","));
+    //     //     }
+    //     // }
+    // }
+
+    // let _split1 = bqsql
+    //     .lines()
+    //     .map(|l| RE.split(l))
+    //     .flatten()
+    //     .map(|s| s.to_string())
+    //     .collect::<Vec<String>>();
+
+    // let split1 = RE.split(bqsql)
+    //     .map(|l| l.to_string())
+    //     .filter(|l| l.trim().len() > 0)
+    //     .collect::<Vec<String>>();
+
+    // let split = RE.split(bqsql);
+    // print!("{}", split1.len());
+
+    Vec::new()
+}
+
+#[test]
+fn parse_tokens_1() {
+    let result = parse_tokens("    SELECT 23+2 --test, another `table` 123 \"back\" to 'dust'");
+    assert_eq!(0, result.len());
+    // assert_eq!(4, result.len());
+    // assert_eq!("SELECT", result[0]);
+    // assert_eq!("23", result[1]);
+    // assert_eq!("+", result[2]);
+    // assert_eq!("2", result[3]);
+}
+
 fn handle_comment(bqsql: &str, position: &BqsqlDocumentPosition) -> Option<BqsqlDocumentItem> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^\s*--.*").unwrap();
@@ -65,9 +129,8 @@ fn handle_query(bqsql: &str, position: &BqsqlDocumentPosition) -> Option<BqsqlDo
 
         //find the position of the word "SELECT"
 
-        //const or simple calculation as type, example: "hi" AS name, or 1 AS number, or 2+2 as another_number  
+        //const or simple calculation as type, example: "hi" AS name, or 1 AS number, or 2+2 as another_number
         //column with potential alias
-
 
         return Some(BqsqlDocumentItem {
             item_type: BqsqlDocumentItemType::QUERY,

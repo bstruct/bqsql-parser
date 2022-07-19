@@ -38,3 +38,10 @@ impl Default for BqsqlDocumentItemType {
         Self::UNKNOWN
     }
 }
+
+#[derive(Serialize)]
+pub struct BqsqlDocumentToken {
+    pub token: String,
+    pub from: BqsqlDocumentPosition,
+    pub to: BqsqlDocumentPosition,
+}

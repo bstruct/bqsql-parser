@@ -43,8 +43,8 @@ impl BqsqlDocument {
 
 fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
     lazy_static! {
-        static ref RE: Regex = Regex::new("\\b|\\d?\\.\\d?").unwrap();
-        static ref regex_comment: Regex = Regex::new("--.*").unwrap();
+        static ref RE: Regex = Regex::new(r"\d?\.\d?|\b").unwrap();
+        // static ref regex_comment: Regex = Regex::new("--.*").unwrap();
 
         //|\\d?\\.\\d?
         //|(\".+\")
@@ -55,130 +55,63 @@ fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
 
     let mut line_index: usize = 0;
     for line in bqsql.lines() {
-        let strings_and_line_comments = find_strings_and_line_comments(line);
+        let mut gaps: Vec<[usize; 2]> = Vec::new();
+        let mut previous_gap_start: usize = 0;
 
-        let mut adjusted_line: &str = line;
-        let mut line_comment: Option<BqsqlDocumentToken> = None;
+        for p1 in find_strings_and_line_comments(line) {
+            gaps.push([previous_gap_start, p1[0]]);
+            previous_gap_start = p1[1];
 
-        //remove line comments out of the match.
-        // to simplify the process
-        //putting top many conditions on the regex was becomming difficult to control
-        if let Some(m) = regex_comment.find(line) {
-            adjusted_line = &line[0..m.start()];
-
-            line_comment = Some(BqsqlDocumentToken {
-                from: BqsqlDocumentPosition::new(line_index, m.start()),
-                to: BqsqlDocumentPosition::new(line_index, line.len()),
-                token: line[m.start()..].to_string(),
+            let partial = line[p1[0]..p1[1]].to_string();
+            tokens.push(BqsqlDocumentToken {
+                from: BqsqlDocumentPosition::new(line_index, p1[0]),
+                to: BqsqlDocumentPosition::new(line_index, p1[1]),
+                token: partial,
             });
         }
 
-        let mut split1 = RE
-            .find_iter(adjusted_line)
-            .map(|m| m.start())
-            .collect::<Vec<usize>>();
+        if gaps.len() == 0 {
+            gaps.push([0, line.len()])
+        };
 
-        let mut previous_start: Option<usize> = None;
-
-        split1.push(adjusted_line.len());
-
-        for start in split1 {
-            if let Some(previous) = previous_start {
-                let partial = adjusted_line[previous..start].to_string();
-
-                if partial.trim().len() > 0 {
-                    tokens.push(BqsqlDocumentToken {
-                        from: BqsqlDocumentPosition::new(line_index, previous),
-                        to: BqsqlDocumentPosition::new(line_index, start),
-                        token: partial,
-                    });
-                }
+        for gap in gaps {
+            if gap[0] == gap[1] {
+                continue;
             }
-            previous_start = Some(start);
-        }
 
-        if line_comment.is_some() {
-            tokens.push(line_comment.unwrap());
+            let adjusted_line = &line[gap[0]..gap[1]];
+
+            let split1 = RE
+                .find_iter(adjusted_line)
+                .map(|m| m.start())
+                .collect::<Vec<usize>>();
+
+            let mut previous_start: Option<usize> = None;
+
+            // split1.push(adjusted_line.len());
+
+            for start in split1 {
+                if let Some(previous) = previous_start {
+                    let partial = adjusted_line[previous..start].to_string();
+
+                    // println!("partial: {}", partial);
+
+                    if partial.trim().len() > 0 {
+                        tokens.push(BqsqlDocumentToken {
+                            from: BqsqlDocumentPosition::new(line_index, previous),
+                            to: BqsqlDocumentPosition::new(line_index, start),
+                            token: partial,
+                        });
+                    }
+                }
+                previous_start = Some(start);
+            }
         }
 
         line_index = line_index + 1;
     }
 
     tokens
-}
-
-fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
-    let mut possible_escape_char = false;
-    let mut possible_line_comment = false;
-
-    let mut string_positions: Vec<[usize; 2]> = Vec::new();
-    let mut index: usize = 0;
-    let mut previous: Option<usize> = None;
-
-    for character in line.chars() {
-        if character == '\\' {
-            possible_escape_char = true;
-            index = index + 1;
-            continue;
-        }
-        if character == '-' && previous.is_none() {
-            if possible_line_comment {
-                string_positions.push([index - 1, line.len()]);
-                return string_positions;
-            }
-            possible_line_comment = true;
-            index = index + 1;
-            continue;
-        }
-
-        if character == '"' {
-            if possible_escape_char {
-                possible_escape_char = false;
-            } else {
-                if previous.is_some() {
-                    string_positions.push([previous.unwrap(), index]);
-                    previous = None;
-                } else {
-                    previous = Some(index);
-                }
-            }
-        } else {
-            possible_escape_char = false;
-        }
-
-        index = index + 1;
-    }
-
-    string_positions
-}
-
-#[test]
-fn find_strings_and_line_comments_no_string_no_comment() {
-    let result = find_strings_and_line_comments(" SELECT 23-2.45");
-
-    assert_eq!(0, result.len());
-}
-
-#[test]
-fn find_strings_and_line_comments_no_string_with_comment() {
-    let result = find_strings_and_line_comments(
-        " SELECT 23+2.45 --test, another `table` 123 \"back\" to 'dust'",
-    );
-
-    assert_eq!(1, result.len());
-    assert_eq!(16, result[0][0]);
-    assert_eq!(60, result[0][1]);
-}
-
-#[test]
-fn find_strings_and_line_comments_string_and_comment() {
-    let result = find_strings_and_line_comments(
-        " SELECT \"this is a \\\" -- string \" --test, another `table` 123 \"back\" to 'dust'",
-    );
-
-    assert_eq!(2, result.len());
-    assert_eq!(8, result[0][0]);
-    assert_eq!(32, result[0][1]);
 }
 
 #[test]
@@ -265,6 +198,80 @@ fn parse_tokens_single_line_string_with_double_dash() {
     assert_eq!(7, result[1].from.character);
     // assert_eq!(0, result[1].to.line);
     // assert_eq!(30, result[1].to.character);
+}
+
+fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
+    let mut possible_escape_char = false;
+    let mut possible_line_comment = false;
+
+    let mut string_positions: Vec<[usize; 2]> = Vec::new();
+    let mut index: usize = 0;
+    let mut previous: Option<usize> = None;
+
+    for character in line.chars() {
+        if character == '\\' {
+            possible_escape_char = true;
+            index = index + 1;
+            continue;
+        }
+        if character == '-' && previous.is_none() {
+            if possible_line_comment {
+                string_positions.push([index - 1, line.len()]);
+                return string_positions;
+            }
+            possible_line_comment = true;
+            index = index + 1;
+            continue;
+        }
+
+        if character == '"' {
+            if possible_escape_char {
+                possible_escape_char = false;
+            } else {
+                if previous.is_some() {
+                    string_positions.push([previous.unwrap(), index]);
+                    previous = None;
+                } else {
+                    previous = Some(index);
+                }
+            }
+        } else {
+            possible_escape_char = false;
+        }
+
+        index = index + 1;
+    }
+
+    string_positions
+}
+
+#[test]
+fn find_strings_and_line_comments_no_string_no_comment() {
+    let result = find_strings_and_line_comments(" SELECT 23-2.45");
+
+    assert_eq!(0, result.len());
+}
+
+#[test]
+fn find_strings_and_line_comments_no_string_with_comment() {
+    let result = find_strings_and_line_comments(
+        " SELECT 23+2.45 --test, another `table` 123 \"back\" to 'dust'",
+    );
+
+    assert_eq!(1, result.len());
+    assert_eq!(16, result[0][0]);
+    assert_eq!(60, result[0][1]);
+}
+
+#[test]
+fn find_strings_and_line_comments_string_and_comment() {
+    let result = find_strings_and_line_comments(
+        " SELECT \"this is a \\\" -- string \" --test, another `table` 123 \"back\" to 'dust'",
+    );
+
+    assert_eq!(2, result.len());
+    assert_eq!(8, result[0][0]);
+    assert_eq!(32, result[0][1]);
 }
 
 // fn handle_comment(bqsql: &str, position: &BqsqlDocumentPosition) -> Option<BqsqlDocumentItem> {

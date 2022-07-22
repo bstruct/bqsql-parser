@@ -206,9 +206,10 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
     let mut possible_escape_char = false;
     let mut possible_line_comment = false;
 
-    let mut string_positions: Vec<[usize; 2]> = Vec::new();
+    let mut positions: Vec<[usize; 2]> = Vec::new();
     let mut index: usize = 0;
-    let mut previous: Option<usize> = None;
+    let mut previous_double_quote: Option<usize> = None;
+    let mut previous_single_quote: Option<usize> = None;
 
     for character in line.chars() {
         if character == '\\' {
@@ -216,35 +217,43 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             index = index + 1;
             continue;
         }
-        if character == '-' && previous.is_none() {
+        if character == '-' && previous_double_quote.is_none() && previous_single_quote.is_none() {
             if possible_line_comment {
-                string_positions.push([index - 1, line.len()]);
-                return string_positions;
+                positions.push([index - 1, line.len()]);
+                return positions;
             }
             possible_line_comment = true;
             index = index + 1;
             continue;
         }
 
-        if character == '"' {
-            if possible_escape_char {
-                possible_escape_char = false;
-            } else {
-                if previous.is_some() {
-                    string_positions.push([previous.unwrap(), index+1]);
-                    previous = None;
+        if character == '"' && previous_single_quote.is_none() {
+            if !possible_escape_char {
+                if previous_double_quote.is_some() {
+                    positions.push([previous_double_quote.unwrap(), index + 1]);
+                    previous_double_quote = None;
                 } else {
-                    previous = Some(index);
+                    previous_double_quote = Some(index);
                 }
             }
-        } else {
-            possible_escape_char = false;
         }
 
+        if character == '\'' && previous_double_quote.is_none() {
+            if !possible_escape_char {
+                if previous_single_quote.is_some() {
+                    positions.push([previous_single_quote.unwrap(), index + 1]);
+                    previous_single_quote = None;
+                } else {
+                    previous_single_quote = Some(index);
+                }
+            }
+        }
+
+        possible_escape_char = false;
         index = index + 1;
     }
 
-    string_positions
+    positions
 }
 
 #[test]
@@ -266,7 +275,7 @@ fn find_strings_and_line_comments_no_string_with_comment() {
 }
 
 #[test]
-fn find_strings_and_line_comments_string_and_comment() {
+fn find_strings_and_line_comments_double_quote_string_and_comment() {
     let result = find_strings_and_line_comments(
         " SELECT \"this is a \\\" -- string \" --test, another `table` 123 \"back\" to 'dust'",
     );
@@ -277,6 +286,34 @@ fn find_strings_and_line_comments_string_and_comment() {
 
     assert_eq!(34, result[1][0]);
     assert_eq!(78, result[1][1]);
+}
+
+#[test]
+fn find_strings_and_line_comments_single_quote_string_and_comment() {
+    let result = find_strings_and_line_comments(
+        " SELECT 'this is a \\' -- string ' --test, another `table` 123 \"back\" to 'dust'",
+    );
+
+    assert_eq!(2, result.len());
+    assert_eq!(8, result[0][0]);
+    assert_eq!(33, result[0][1]);
+
+    assert_eq!(34, result[1][0]);
+    assert_eq!(78, result[1][1]);
+}
+
+#[test]
+fn find_strings_and_line_comments_strings() {
+    let result = find_strings_and_line_comments(
+        " SELECT 'this is a \\' -- string ',\"this is also a \\\" -- string \"",
+    );
+
+    assert_eq!(4, result.len());
+    // assert_eq!(8, result[0][0]);
+    // assert_eq!(33, result[0][1]);
+
+    // assert_eq!(34, result[1][0]);
+    // assert_eq!(78, result[1][1]);
 }
 
 // fn handle_comment(bqsql: &str, position: &BqsqlDocumentPosition) -> Option<BqsqlDocumentItem> {

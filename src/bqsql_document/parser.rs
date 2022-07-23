@@ -28,7 +28,7 @@ impl BqsqlDocument {
 
             //for now, only queries are supported.
             //if there's other types of syntaxes, (DDL, DML, DCL,...), they will be ignored
-            while get_string_in_range(lines, &tokens[index]) != ";" || index >= tokens.len() {
+            while index < tokens.len() && get_string_in_range(lines, &tokens[index]) != ";" {
                 index = index + 1;
             }
 

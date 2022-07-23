@@ -18,28 +18,35 @@ pub struct BqsqlDocumentItem {
 
 #[derive(Serialize, Debug, PartialEq, Eq)]
 pub enum BqsqlDocumentItemType {
-    UNKNOWN = 0,
-    QUERY = 1,
-}
+    // UNEXPECTED = -1,
+    // UNKNOWN = 0,
 
-#[derive(Serialize)]
-pub struct BqsqlDocumentToken {
-    pub token: String,
-    pub from: BqsqlDocumentPosition,
-    pub to: BqsqlDocumentPosition,
-}
+    KEYWORD,
+    STRING,
+    NUMBER,
+    OPERATOR,
+    // TYPE,
+    // FUNCTION,
+    // METHOD,
 
-#[derive(Serialize)]
-pub struct BqsqlDocumentPosition {
-    pub line: usize,
-    pub character: usize,
-}
+    PARENTHESES_OPEN,
+    PARENTHESES_CLOSE,
 
-impl BqsqlDocumentPosition {
-    pub(crate) fn new(line: usize, character: usize) -> BqsqlDocumentPosition {
-        BqsqlDocumentPosition {
-            line: line,
-            character: character,
-        }
-    }
+    AS_ALIAS,
+    ALIAS,
+
+    QUERY,
+
+    QUERY_WITH,
+
+    QUERY_SELECT,
+    QUERY_SELECT_ALL,
+    QUERY_SELECT_DISTINCT,
+    QUERY_SELECT_AS_STRUCT,
+    QUERY_SELECT_AS_VALUE,
+    // QUERY_SELECT_SELECT_LIST,
+    QUERY_SELECT_LIST_ITEM,
+
+    // QUERY_FROM,
+
 }

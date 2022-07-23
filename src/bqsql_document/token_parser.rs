@@ -2,53 +2,9 @@ use crate::bqsql_document::*;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-impl BqsqlDocument {
-    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
-        // let mut document_type = BqsqlDocumentType::UNKNOWN;
-        // let mut position = BqsqlDocumentPosition::beginning_text();
-        // let mut items = Vec::new();
-
-        let tokens = parse_tokens(bqsql);
-
-        // while position.index < bqsql.len() {
-        //     let mut skip = false;
-
-        //     if let Some(comment) = handle_comment(bqsql, &position) {
-        //         position = BqsqlDocumentPosition::copy(&comment.to);
-        //         items.push(comment);
-        //         skip = true;
-        //     }
-
-        //     if !skip {
-        //         if let Some(query) = handle_query(bqsql, &position) {
-        //             document_type = BqsqlDocumentType::QUERY;
-        //             position = BqsqlDocumentPosition::copy(&query.to);
-        //             items.push(query);
-        //         }
-        //     }
-
-        //     if let Some(next_position) = BqsqlDocumentPosition::next(bqsql, &position) {
-        //         position = next_position;
-        //     } else {
-        //         break;
-        //     }
-        // }
-
-        BqsqlDocument {
-            document_type: BqsqlDocumentType::UNKNOWN,
-            items: tokens,
-        }
-    }
-}
-
-fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
+pub fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
-        //^|\d+|\s+|\W{1}
-        //|\d*\.\d*
-        //\d*\.{1}\d*|A-z0-9_|\w+
-
-        //\".*\"|\`.*\`|\'.*\'|\d*\.{1}\d*|[A-z0-9_]+|\W?
     }
 
     let mut tokens: Vec<BqsqlDocumentToken> = Vec::new();
@@ -80,7 +36,6 @@ fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
             }
 
             let adjusted_line = &line[gap[0]..gap[1]];
-            println!("adjusted_line len: {}", adjusted_line.len());
 
             for m in RE.find_iter(adjusted_line) {
                 let partial = adjusted_line[m.start()..m.end()].to_string();
@@ -100,7 +55,12 @@ fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
         line_index = line_index + 1;
     }
 
-    tokens.sort_by(|a, b| a.from.character.cmp(&b.from.character));
+    tokens.sort_by(|a, b| {
+        a.from
+            .line
+            .cmp(&b.from.line)
+            .then(a.from.character.cmp(&b.from.character))
+    });
 
     tokens
 }
@@ -202,30 +162,29 @@ fn parse_tokens_parenthisis() {
     assert_eq!(0, result[3].to.line);
     assert_eq!(10, result[3].to.character);
 
-    assert_eq!("1",result[4].token);
+    assert_eq!("1", result[4].token);
     assert_eq!(0, result[4].from.line);
     assert_eq!(10, result[4].from.character);
     assert_eq!(0, result[4].to.line);
     assert_eq!(11, result[4].to.character);
 
-    assert_eq!(")",result[5].token);
+    assert_eq!(")", result[5].token);
     assert_eq!(0, result[5].from.line);
     assert_eq!(11, result[5].from.character);
     assert_eq!(0, result[5].to.line);
     assert_eq!(12, result[5].to.character);
 
-    assert_eq!(")",result[6].token);
+    assert_eq!(")", result[6].token);
     assert_eq!(0, result[6].from.line);
     assert_eq!(12, result[6].from.character);
     assert_eq!(0, result[6].to.line);
     assert_eq!(13, result[6].to.character);
 
-    assert_eq!(")",result[7].token);
+    assert_eq!(")", result[7].token);
     assert_eq!(0, result[7].from.line);
     assert_eq!(13, result[7].from.character);
     assert_eq!(0, result[7].to.line);
     assert_eq!(14, result[7].to.character);
-
 }
 
 #[test]

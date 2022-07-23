@@ -1,5 +1,8 @@
 use serde::Serialize;
 
+pub mod parser;
+pub mod token_parser;
+
 #[derive(Serialize)]
 pub struct BqsqlDocument {
     pub document_type: BqsqlDocumentType,
@@ -40,6 +43,7 @@ impl BqsqlDocumentPosition {
         }
     }
 }
+
 // #[derive(Serialize, Debug, PartialEq, Eq)]
 // pub enum BqsqlDocumentItemType {
 //     UNKNOWN = 0,
@@ -52,3 +56,4 @@ impl BqsqlDocumentPosition {
 //         Self::UNKNOWN
 //     }
 // }
+

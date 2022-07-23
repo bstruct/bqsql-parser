@@ -160,7 +160,7 @@ fn select_select_as_struct_query() {
         query_list_item_0.items[1].item_type
     );
     assert_eq!(None, query_list_item_0.items[1].range);
-    assert_eq!(Some([1, 2, 3]), query_list_item_0.items[1].range);
+    assert_eq!(1, query_list_item_0.items[1].items.len());
 
     //--- --- --- --- QUERY_SELECT_AS_STRUCT
     //--- --- --- --- --- KEYWORD
@@ -204,5 +204,5 @@ fn select_select_as_struct_query() {
     
     //
     //
-    
+
 }

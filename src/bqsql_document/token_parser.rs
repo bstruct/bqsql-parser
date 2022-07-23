@@ -1,13 +1,12 @@
-use crate::bqsql_document::*;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-pub fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
+pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
     }
 
-    let mut tokens: Vec<BqsqlDocumentToken> = Vec::new();
+    let mut tokens: Vec<[usize; 3]> = Vec::new();
 
     let mut line_index: usize = 0;
     for line in bqsql.lines() {
@@ -18,12 +17,13 @@ pub fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
             gaps.push([previous_gap_start, p1[0]]);
             previous_gap_start = p1[1];
 
-            let partial = line[p1[0]..p1[1]].to_string();
-            tokens.push(BqsqlDocumentToken {
-                from: BqsqlDocumentPosition::new(line_index, p1[0]),
-                to: BqsqlDocumentPosition::new(line_index, p1[1]),
-                token: partial,
-            });
+            // let partial = line[p1[0]..p1[1]].to_string();
+            // tokens.push(BqsqlDocumentToken {
+            //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
+            //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
+            //     token: partial,
+            // });
+            tokens.push([line_index, p1[0], p1[1]]);
         }
 
         if gaps.len() == 0 {
@@ -38,16 +38,14 @@ pub fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
             let adjusted_line = &line[gap[0]..gap[1]];
 
             for m in RE.find_iter(adjusted_line) {
-                let partial = adjusted_line[m.start()..m.end()].to_string();
-
-                println!("partial: {}", partial);
-
+                let partial = &adjusted_line[m.start()..m.end()];
                 if partial.trim().len() > 0 {
-                    tokens.push(BqsqlDocumentToken {
-                        from: BqsqlDocumentPosition::new(line_index, gap[0] + m.start()),
-                        to: BqsqlDocumentPosition::new(line_index, gap[0] + m.end()),
-                        token: partial,
-                    });
+                    // tokens.push(BqsqlDocumentToken {
+                    //     from: BqsqlDocumentPosition::new(line_index, gap[0] + m.start()),
+                    //     to: BqsqlDocumentPosition::new(line_index, gap[0] + m.end()),
+                    //     token: partial,
+                    // });
+                    tokens.push([line_index, gap[0] + m.start(), gap[0] + m.end()]);
                 }
             }
         }
@@ -55,12 +53,7 @@ pub fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
         line_index = line_index + 1;
     }
 
-    tokens.sort_by(|a, b| {
-        a.from
-            .line
-            .cmp(&b.from.line)
-            .then(a.from.character.cmp(&b.from.character))
-    });
+    tokens.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
 
     tokens
 }
@@ -70,38 +63,12 @@ fn parse_tokens_single_line_operation() {
     let result = parse_tokens("    SELECT 23+2.45 --test, another `table` 123 \"back\" to 'dust'");
 
     assert_eq!(5, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(4, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(10, result[0].to.character);
+    assert_eq!([0, 4, 10], result[0]);
+    assert_eq!([0, 11,13], result[1]);
+    assert_eq!([0, 13, 14], result[2]);
+    assert_eq!([0, 14, 18], result[3]);
+    assert_eq!([0, 19, 63], result[4]);
 
-    assert_eq!("23", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(11, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(13, result[1].to.character);
-
-    assert_eq!("+", result[2].token);
-    assert_eq!(0, result[2].from.line);
-    assert_eq!(13, result[2].from.character);
-    assert_eq!(0, result[2].to.line);
-    assert_eq!(14, result[2].to.character);
-
-    assert_eq!("2.45", result[3].token);
-    assert_eq!(0, result[3].from.line);
-    assert_eq!(14, result[3].from.character);
-    assert_eq!(0, result[3].to.line);
-    assert_eq!(18, result[3].to.character);
-
-    assert_eq!(
-        "--test, another `table` 123 \"back\" to 'dust'",
-        result[4].token
-    );
-    assert_eq!(0, result[4].from.line);
-    assert_eq!(19, result[4].from.character);
-    assert_eq!(0, result[4].to.line);
-    assert_eq!(63, result[4].to.character);
 }
 
 #[test]
@@ -111,26 +78,11 @@ fn parse_tokens_single_line_string() {
     );
 
     assert_eq!(3, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(0, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(6, result[0].to.character);
 
-    assert_eq!("\"this is a ''' string \"", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(7, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(30, result[1].to.character);
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 30], result[1]);
+    assert_eq!([0, 31, 75], result[2]);
 
-    assert_eq!(
-        "--test, another `table` 123 \"back\" to 'dust'",
-        result[2].token
-    );
-    assert_eq!(0, result[2].from.line);
-    assert_eq!(31, result[2].from.character);
-    assert_eq!(0, result[2].to.line);
-    assert_eq!(75, result[2].to.character);
 }
 
 #[test]
@@ -138,53 +90,16 @@ fn parse_tokens_parenthisis() {
     let result = parse_tokens("SELECT (((1)))");
 
     assert_eq!(8, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(0, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(6, result[0].to.character);
 
-    assert_eq!("(", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(7, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(8, result[1].to.character);
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 8], result[1]);
+    assert_eq!([0, 8, 9], result[2]);
+    assert_eq!([0, 9, 10], result[3]);
+    assert_eq!([0, 10, 11], result[4]);
+    assert_eq!([0, 11, 12], result[5]);
+    assert_eq!([0, 12, 13], result[6]);
+    assert_eq!([0, 13, 14], result[7]);
 
-    assert_eq!("(", result[2].token);
-    assert_eq!(0, result[2].from.line);
-    assert_eq!(8, result[2].from.character);
-    assert_eq!(0, result[2].to.line);
-    assert_eq!(9, result[2].to.character);
-
-    assert_eq!("(", result[3].token);
-    assert_eq!(0, result[3].from.line);
-    assert_eq!(9, result[3].from.character);
-    assert_eq!(0, result[3].to.line);
-    assert_eq!(10, result[3].to.character);
-
-    assert_eq!("1", result[4].token);
-    assert_eq!(0, result[4].from.line);
-    assert_eq!(10, result[4].from.character);
-    assert_eq!(0, result[4].to.line);
-    assert_eq!(11, result[4].to.character);
-
-    assert_eq!(")", result[5].token);
-    assert_eq!(0, result[5].from.line);
-    assert_eq!(11, result[5].from.character);
-    assert_eq!(0, result[5].to.line);
-    assert_eq!(12, result[5].to.character);
-
-    assert_eq!(")", result[6].token);
-    assert_eq!(0, result[6].from.line);
-    assert_eq!(12, result[6].from.character);
-    assert_eq!(0, result[6].to.line);
-    assert_eq!(13, result[6].to.character);
-
-    assert_eq!(")", result[7].token);
-    assert_eq!(0, result[7].from.line);
-    assert_eq!(13, result[7].from.character);
-    assert_eq!(0, result[7].to.line);
-    assert_eq!(14, result[7].to.character);
 }
 
 #[test]
@@ -192,17 +107,10 @@ fn parse_tokens_single_line_string_with_double_dash() {
     let result = parse_tokens("SELECT \"this is a -- string \"  ");
 
     assert_eq!(2, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(0, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(6, result[0].to.character);
 
-    assert_eq!("\"this is a -- string \"", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(7, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(29, result[1].to.character);
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 29], result[1]);
+
 }
 
 #[test]
@@ -211,29 +119,12 @@ fn parse_tokens_strings() {
         parse_tokens(" SELECT 'this is a \\' -- string ',\"this is also a \\\" -- string \"");
 
     assert_eq!(4, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(1, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(7, result[0].to.character);
 
-    assert_eq!("'this is a \\' -- string '", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(8, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(33, result[1].to.character);
+    assert_eq!([0, 1, 7], result[0]);
+    assert_eq!([0, 8, 33], result[1]);
+    assert_eq!([0, 33, 34], result[2]);
+    assert_eq!([0, 34, 64], result[3]);
 
-    assert_eq!(",", result[2].token);
-    assert_eq!(0, result[2].from.line);
-    assert_eq!(33, result[2].from.character);
-    assert_eq!(0, result[2].to.line);
-    assert_eq!(34, result[2].to.character);
-
-    assert_eq!("\"this is also a \\\" -- string \"", result[3].token);
-    assert_eq!(0, result[3].from.line);
-    assert_eq!(34, result[3].from.character);
-    assert_eq!(0, result[3].to.line);
-    assert_eq!(64, result[3].to.character);
 }
 
 #[test]
@@ -242,29 +133,12 @@ fn parse_tokens_strings_with_space() {
         parse_tokens(" SELECT 'this is a \\' -- string ', \"this is also a \\\" -- string \"");
 
     assert_eq!(4, result.len());
-    assert_eq!("SELECT", result[0].token);
-    assert_eq!(0, result[0].from.line);
-    assert_eq!(1, result[0].from.character);
-    assert_eq!(0, result[0].to.line);
-    assert_eq!(7, result[0].to.character);
 
-    assert_eq!("'this is a \\' -- string '", result[1].token);
-    assert_eq!(0, result[1].from.line);
-    assert_eq!(8, result[1].from.character);
-    assert_eq!(0, result[1].to.line);
-    assert_eq!(33, result[1].to.character);
+    assert_eq!([0, 1, 7], result[0]);
+    assert_eq!([0, 8, 33], result[1]);
+    assert_eq!([0, 33, 34], result[2]);
+    assert_eq!([0, 35, 65], result[3]);
 
-    assert_eq!(",", result[2].token);
-    assert_eq!(0, result[2].from.line);
-    assert_eq!(33, result[2].from.character);
-    assert_eq!(0, result[2].to.line);
-    assert_eq!(34, result[2].to.character);
-
-    assert_eq!("\"this is also a \\\" -- string \"", result[3].token);
-    assert_eq!(0, result[3].from.line);
-    assert_eq!(35, result[3].from.character);
-    assert_eq!(0, result[3].to.line);
-    assert_eq!(65, result[3].to.character);
 }
 
 fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
@@ -335,8 +209,7 @@ fn find_strings_and_line_comments_no_string_with_comment() {
     );
 
     assert_eq!(1, result.len());
-    assert_eq!(16, result[0][0]);
-    assert_eq!(60, result[0][1]);
+    assert_eq!([16, 60], result[0]);
 }
 
 #[test]
@@ -346,11 +219,8 @@ fn find_strings_and_line_comments_double_quote_string_and_comment() {
     );
 
     assert_eq!(2, result.len());
-    assert_eq!(8, result[0][0]);
-    assert_eq!(33, result[0][1]);
-
-    assert_eq!(34, result[1][0]);
-    assert_eq!(78, result[1][1]);
+    assert_eq!([8, 33], result[0]);
+    assert_eq!([34, 78], result[1]);
 }
 
 #[test]
@@ -360,11 +230,8 @@ fn find_strings_and_line_comments_single_quote_string_and_comment() {
     );
 
     assert_eq!(2, result.len());
-    assert_eq!(8, result[0][0]);
-    assert_eq!(33, result[0][1]);
-
-    assert_eq!(34, result[1][0]);
-    assert_eq!(78, result[1][1]);
+    assert_eq!([8,33], result[0]);
+    assert_eq!([34,78], result[1]);
 }
 
 #[test]
@@ -374,9 +241,6 @@ fn find_strings_and_line_comments_strings() {
     );
 
     assert_eq!(2, result.len());
-    assert_eq!(8, result[0][0]);
-    assert_eq!(33, result[0][1]);
-
-    assert_eq!(34, result[1][0]);
-    assert_eq!(64, result[1][1]);
+    assert_eq!([8, 33], result[0]);
+    assert_eq!([34, 64], result[1]);
 }

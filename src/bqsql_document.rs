@@ -2,11 +2,24 @@ use serde::Serialize;
 
 pub mod parser;
 pub mod token_parser;
+pub mod parser_test_select;
 
 #[derive(Serialize)]
 pub struct BqsqlDocument {
-    pub document_type: BqsqlDocumentType,
-    pub items: Vec<BqsqlDocumentToken>,
+    pub items: Vec<BqsqlDocumentItem>,
+}
+
+#[derive(Serialize)]
+pub struct BqsqlDocumentItem {
+    pub item_type: BqsqlDocumentItemType,
+    pub range: Option<[usize;3]>,
+    pub items: Vec<BqsqlDocumentItem>,
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub enum BqsqlDocumentItemType {
+    UNKNOWN = 0,
+    QUERY = 1,
 }
 
 #[derive(Serialize)]
@@ -15,19 +28,6 @@ pub struct BqsqlDocumentToken {
     pub from: BqsqlDocumentPosition,
     pub to: BqsqlDocumentPosition,
 }
-
-#[derive(Serialize, Debug, PartialEq, Eq)]
-pub enum BqsqlDocumentType {
-    UNKNOWN = 0,
-    QUERY = 1,
-}
-
-// #[derive(Serialize)]
-// pub struct BqsqlDocumentItem {
-//     pub item_type: BqsqlDocumentItemType,
-//     pub from: BqsqlDocumentPosition,
-//     pub to: BqsqlDocumentPosition,
-// }
 
 #[derive(Serialize)]
 pub struct BqsqlDocumentPosition {
@@ -43,17 +43,3 @@ impl BqsqlDocumentPosition {
         }
     }
 }
-
-// #[derive(Serialize, Debug, PartialEq, Eq)]
-// pub enum BqsqlDocumentItemType {
-//     UNKNOWN = 0,
-//     COMMENT = 1,
-//     QUERY = 2,
-// }
-
-// impl Default for BqsqlDocumentItemType {
-//     fn default() -> Self {
-//         Self::UNKNOWN
-//     }
-// }
-

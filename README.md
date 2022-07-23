@@ -2,6 +2,7 @@
 
 ## query expression
 
+https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax
 ```
 query_statement:
     query_expr

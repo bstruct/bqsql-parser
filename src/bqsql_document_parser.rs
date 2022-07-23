@@ -43,10 +43,12 @@ impl BqsqlDocument {
 
 fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"\w+|\W{1}").unwrap();
+        static ref RE: Regex = Regex::new(r"\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
         //^|\d+|\s+|\W{1}
         //|\d*\.\d*
         //\d*\.{1}\d*|A-z0-9_|\w+
+
+        //\".*\"|\`.*\`|\'.*\'|\d*\.{1}\d*|[A-z0-9_]+|\W?
     }
 
     let mut tokens: Vec<BqsqlDocumentToken> = Vec::new();
@@ -176,26 +178,54 @@ fn parse_tokens_parenthisis() {
     let result = parse_tokens("SELECT (((1)))");
 
     assert_eq!(8, result.len());
-    // assert_eq!("SELECT", result[0].token);
-    // assert_eq!(0, result[0].from.line);
-    // assert_eq!(0, result[0].from.character);
-    // assert_eq!(0, result[0].to.line);
-    // assert_eq!(6, result[0].to.character);
+    assert_eq!("SELECT", result[0].token);
+    assert_eq!(0, result[0].from.line);
+    assert_eq!(0, result[0].from.character);
+    assert_eq!(0, result[0].to.line);
+    assert_eq!(6, result[0].to.character);
 
-    // assert_eq!("\"this is a ''' string \"", result[1].token);
-    // assert_eq!(0, result[1].from.line);
-    // assert_eq!(7, result[1].from.character);
-    // assert_eq!(0, result[1].to.line);
-    // assert_eq!(30, result[1].to.character);
+    assert_eq!("(", result[1].token);
+    assert_eq!(0, result[1].from.line);
+    assert_eq!(7, result[1].from.character);
+    assert_eq!(0, result[1].to.line);
+    assert_eq!(8, result[1].to.character);
 
-    // assert_eq!(
-    //     "--test, another `table` 123 \"back\" to 'dust'",
-    //     result[2].token
-    // );
-    // assert_eq!(0, result[2].from.line);
-    // assert_eq!(31, result[2].from.character);
-    // assert_eq!(0, result[2].to.line);
-    // assert_eq!(75, result[2].to.character);
+    assert_eq!("(", result[2].token);
+    assert_eq!(0, result[2].from.line);
+    assert_eq!(8, result[2].from.character);
+    assert_eq!(0, result[2].to.line);
+    assert_eq!(9, result[2].to.character);
+
+    assert_eq!("(", result[3].token);
+    assert_eq!(0, result[3].from.line);
+    assert_eq!(9, result[3].from.character);
+    assert_eq!(0, result[3].to.line);
+    assert_eq!(10, result[3].to.character);
+
+    assert_eq!("1",result[4].token);
+    assert_eq!(0, result[4].from.line);
+    assert_eq!(10, result[4].from.character);
+    assert_eq!(0, result[4].to.line);
+    assert_eq!(11, result[4].to.character);
+
+    assert_eq!(")",result[5].token);
+    assert_eq!(0, result[5].from.line);
+    assert_eq!(11, result[5].from.character);
+    assert_eq!(0, result[5].to.line);
+    assert_eq!(12, result[5].to.character);
+
+    assert_eq!(")",result[6].token);
+    assert_eq!(0, result[6].from.line);
+    assert_eq!(12, result[6].from.character);
+    assert_eq!(0, result[6].to.line);
+    assert_eq!(13, result[6].to.character);
+
+    assert_eq!(")",result[7].token);
+    assert_eq!(0, result[7].from.line);
+    assert_eq!(13, result[7].from.character);
+    assert_eq!(0, result[7].to.line);
+    assert_eq!(14, result[7].to.character);
+
 }
 
 #[test]

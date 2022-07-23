@@ -46,6 +46,7 @@ fn parse_tokens(bqsql: &str) -> Vec<BqsqlDocumentToken> {
         static ref RE: Regex = Regex::new(r"\w+|\W{1}").unwrap();
         //^|\d+|\s+|\W{1}
         //|\d*\.\d*
+        //\d*\.{1}\d*|A-z0-9_|\w+
     }
 
     let mut tokens: Vec<BqsqlDocumentToken> = Vec::new();

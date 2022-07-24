@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -203,7 +201,7 @@ fn handle_query_resolve_select<'a>(
                         ],
                     };
 
-                    return (item, index + 4);
+                    return (item, index + 3);
                 }
 
                 //
@@ -397,20 +395,23 @@ fn handle_query_resolve_select_list<'a>(
                 return Some((document_items, index));
             }
 
-            if string_in_range.to_uppercase() == "," {
+            if string_in_range == "," {
                 select_item_items.push(BqsqlDocumentItem {
                     item_type: BqsqlDocumentItemType::Comma,
                     range: Some(tokens[index]),
                     items: vec![],
                 });
 
-                document_items.push(BqsqlDocumentItem {
-                    item_type: BqsqlDocumentItemType::QuerySelectListItem,
-                    range: None,
-                    items: select_item_items,
-                });
+                if count_open_parentheses == 0 {
+                    document_items.push(BqsqlDocumentItem {
+                        item_type: BqsqlDocumentItemType::QuerySelectListItem,
+                        range: None,
+                        items: select_item_items,
+                    });
 
-                select_item_items = Vec::new();
+                    select_item_items = Vec::new();
+                }
+
                 index = index + 1;
                 alias_expected = false;
                 continue;
@@ -446,6 +447,14 @@ fn handle_query_resolve_select_list<'a>(
 
             if string_in_range == ")" {
                 if count_open_parentheses == 0 {
+                    if select_item_items.len() > 0 {
+                        document_items.push(BqsqlDocumentItem {
+                            item_type: BqsqlDocumentItemType::QuerySelectListItem,
+                            range: None,
+                            items: select_item_items,
+                        });
+                    }
+
                     return Some((document_items, index));
                 } else {
                     select_item_items.push(BqsqlDocumentItem {
@@ -507,12 +516,16 @@ fn handle_query_resolve_select_list<'a>(
             }
 
             //alias
-            if alias_expected && document_items.len() > 0 {
+            if alias_expected && select_item_items.len() > 0 {
                 select_item_items.push(BqsqlDocumentItem {
                     item_type: BqsqlDocumentItemType::Alias,
                     range: Some(tokens[index]),
                     items: vec![],
                 });
+
+                index = index + 1;
+                alias_expected = false;
+                continue;
             }
         }
 

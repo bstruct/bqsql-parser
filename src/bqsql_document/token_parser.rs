@@ -11,20 +11,20 @@ pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     let mut line_index: usize = 0;
     for line in bqsql.lines() {
         let mut gaps: Vec<[usize; 2]> = Vec::new();
-        // let mut previous_gap_start: usize = 0;
+        let mut previous_gap_start: usize = 0;
 
-        // for p1 in find_strings_and_line_comments(line) {
-        //     gaps.push([previous_gap_start, p1[0]]);
-        //     previous_gap_start = p1[1];
+        for p1 in find_strings_and_line_comments(line) {
+            gaps.push([previous_gap_start, p1[0]]);
+            previous_gap_start = p1[1];
 
-        //     // let partial = line[p1[0]..p1[1]].to_string();
-        //     // tokens.push(BqsqlDocumentToken {
-        //     //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
-        //     //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
-        //     //     token: partial,
-        //     // });
-        //     tokens.push([line_index, p1[0], p1[1]]);
-        // }
+            // let partial = line[p1[0]..p1[1]].to_string();
+            // tokens.push(BqsqlDocumentToken {
+            //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
+            //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
+            //     token: partial,
+            // });
+            tokens.push([line_index, p1[0], p1[1]]);
+        }
 
         if gaps.len() == 0 {
             gaps.push([0, line.len()])
@@ -159,7 +159,7 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
     let mut positions: Vec<[usize; 2]> = Vec::new();
     let mut index: usize = 0;
     let mut previous_double_quote: Option<usize> = None;
-    let mut previous_single_quote: Option<usize> = None;
+    // let mut previous_single_quote: Option<usize> = None;
 
     for character in line.chars() {
         if character == '\\' {
@@ -167,7 +167,8 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             index = index + 1;
             continue;
         }
-        if character == '-' && previous_double_quote.is_none() && previous_single_quote.is_none() {
+        if character == '-' && previous_double_quote.is_none() //&& previous_single_quote.is_none() 
+        {
             if possible_line_comment {
                 positions.push([index - 1, line.len()]);
                 return positions;
@@ -177,7 +178,8 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             continue;
         }
 
-        if character == '"' && previous_single_quote.is_none() {
+        if character == '"' //&& previous_single_quote.is_none() 
+        {
             if !possible_escape_char {
                 if previous_double_quote.is_some() {
                     positions.push([previous_double_quote.unwrap(), index + 1]);
@@ -188,16 +190,16 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             }
         }
 
-        if character == '\'' && previous_double_quote.is_none() {
-            if !possible_escape_char {
-                if previous_single_quote.is_some() {
-                    positions.push([previous_single_quote.unwrap(), index + 1]);
-                    previous_single_quote = None;
-                } else {
-                    previous_single_quote = Some(index);
-                }
-            }
-        }
+        // if character == '\'' && previous_double_quote.is_none() {
+        //     if !possible_escape_char {
+        //         if previous_single_quote.is_some() {
+        //             positions.push([previous_single_quote.unwrap(), index + 1]);
+        //             previous_single_quote = None;
+        //         } else {
+        //             previous_single_quote = Some(index);
+        //         }
+        //     }
+        // }
 
         possible_escape_char = false;
         index = index + 1;

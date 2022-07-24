@@ -3,7 +3,7 @@ use regex::Regex;
 
 pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
+        static ref RE: Regex = Regex::new(r"`.*`|'.*'|\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
     }
 
     let mut tokens: Vec<[usize; 3]> = Vec::new();
@@ -11,20 +11,20 @@ pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     let mut line_index: usize = 0;
     for line in bqsql.lines() {
         let mut gaps: Vec<[usize; 2]> = Vec::new();
-        let mut previous_gap_start: usize = 0;
+        // let mut previous_gap_start: usize = 0;
 
-        for p1 in find_strings_and_line_comments(line) {
-            gaps.push([previous_gap_start, p1[0]]);
-            previous_gap_start = p1[1];
+        // for p1 in find_strings_and_line_comments(line) {
+        //     gaps.push([previous_gap_start, p1[0]]);
+        //     previous_gap_start = p1[1];
 
-            // let partial = line[p1[0]..p1[1]].to_string();
-            // tokens.push(BqsqlDocumentToken {
-            //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
-            //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
-            //     token: partial,
-            // });
-            tokens.push([line_index, p1[0], p1[1]]);
-        }
+        //     // let partial = line[p1[0]..p1[1]].to_string();
+        //     // tokens.push(BqsqlDocumentToken {
+        //     //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
+        //     //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
+        //     //     token: partial,
+        //     // });
+        //     tokens.push([line_index, p1[0], p1[1]]);
+        // }
 
         if gaps.len() == 0 {
             gaps.push([0, line.len()])
@@ -138,6 +138,17 @@ fn parse_tokens_strings_with_space() {
     assert_eq!([0, 8, 33], result[1]);
     assert_eq!([0, 33, 34], result[2]);
     assert_eq!([0, 35, 65], result[3]);
+
+}
+
+#[test]
+fn parse_tokens_strings_multi_select() {
+    let result =
+        parse_tokens(" SELECT (SELECT AS STRUCT 2+2 AS asas, 'ASDASD' AS qweqwe) AS XXX");
+
+    assert_eq!(17, result.len());
+
+    assert_eq!([0, 1, 7], result[0]);
 
 }
 

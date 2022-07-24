@@ -34,12 +34,12 @@ fn tiny_query() {
 
     assert_eq!(1, document.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::QUERY, document.items[1].item_type);
+    assert_eq!(BqsqlDocumentItemType::Query, document.items[1].item_type);
     assert_eq!(None, document.items[1].range);
     assert_eq!(1, document.items[1].items.len());
 
     assert_eq!(
-        BqsqlDocumentItemType::QUERY_SELECT,
+        BqsqlDocumentItemType::QuerySelect,
         document.items[1].items[1].item_type
     );
     // assert_eq!(0, document.items[0].from.column);
@@ -54,14 +54,68 @@ fn tiny_query() {
 fn tiny_query_second_line() {
     let document = BqsqlDocument::parse("\nSELECT 2+2");
 
+    //
+    //Query
+    //--- QuerySelect
+    //--- --- KEYWORD
+    //--- --- QUERY_SELECT_LIST_ITEM
+    //--- --- --- NUMBER
+    //--- --- --- OPERATOR
+    //--- --- --- NUMBER
+    //
+
     assert_eq!(1, document.items.len());
-    // assert_eq!(BqsqlDocumentItemType::QUERY, document.items[0].item_type);
-    // assert_eq!(0, document.items[0].from.column);
-    // assert_eq!(1, document.items[0].from.line);
-    // assert_eq!(1, document.items[0].from.index);
-    // assert_eq!(16, document.items[0].to.column);
-    // assert_eq!(1, document.items[0].to.line);
-    // assert_eq!(16, document.items[0].to.index);
+
+    //
+    //QUERY
+    let query = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
+    assert_eq!(None, query.range);
+    assert_eq!(1, query.items.len());
+
+    //--- QUERY_SELECT
+    let query_select = &document.items[0].items[0];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(2, query_select.items.len());
+
+    //--- --- KEYWORD
+    let k_0 = &query_select.items[0];
+    assert_eq!(BqsqlDocumentItemType::Keyword, k_0.item_type);
+    assert_eq!(Some([1, 0, 6]), k_0.range);
+    assert_eq!(0, k_0.items.len());
+
+    //--- --- QUERY_SELECT_LIST_ITEM
+    let query_list_item_0 = &query_select.items[1];
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_list_item_0.item_type
+    );
+    assert_eq!(None, query_list_item_0.range);
+    assert_eq!(3, query_list_item_0.items.len());
+
+    let query_list_item_0_items = &query_list_item_0.items;
+    assert_eq!(
+        BqsqlDocumentItemType::Number,
+        query_list_item_0_items[0].item_type
+    );
+    assert_eq!(Some([1, 7, 8]), query_list_item_0_items[0].range);
+    assert_eq!(0, query_list_item_0_items[0].items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::OPERATOR,
+        query_list_item_0_items[1].item_type
+    );
+    assert_eq!(Some([1, 8, 9]), query_list_item_0_items[1].range);
+    assert_eq!(0, query_list_item_0_items[1].items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::Number,
+        query_list_item_0_items[2].item_type
+    );
+    assert_eq!(Some([1, 9, 10]), query_list_item_0_items[2].range);
+    assert_eq!(0, query_list_item_0_items[2].items.len());
+
 }
 
 #[test]
@@ -107,6 +161,7 @@ fn select_select_as_struct_query() {
     //--- --- --- --- --- --- NUMBER
     //--- --- --- --- --- --- AS_ALIAS
     //--- --- --- --- --- --- ALIAS
+    //--- --- --- --- --- --- Comma
     //--- --- --- --- --- QUERY_SELECT_LIST_ITEM
     //--- --- --- --- --- --- STRING
     //--- --- --- --- --- --- AS_ALIAS
@@ -121,26 +176,26 @@ fn select_select_as_struct_query() {
     //
     //QUERY
     let query = &document.items[0];
-    assert_eq!(BqsqlDocumentItemType::QUERY, query.item_type);
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
     assert_eq!(None, query.range);
     assert_eq!(1, query.items.len());
 
     //--- QUERY_SELECT
     let query_select = &document.items[0].items[0];
-    assert_eq!(BqsqlDocumentItemType::QUERY_SELECT, query_select.item_type);
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
     assert_eq!(None, query_select.range);
     assert_eq!(2, query_select.items.len());
 
     //--- --- KEYWORD
     let k_0 = &query_select.items[0];
-    assert_eq!(BqsqlDocumentItemType::KEYWORD, k_0.item_type);
+    assert_eq!(BqsqlDocumentItemType::Keyword, k_0.item_type);
     assert_eq!(Some([0, 0, 6]), k_0.range);
     assert_eq!(0, k_0.items.len());
 
     //--- --- QUERY_SELECT_LIST_ITEM
     let query_list_item_0 = &query_select.items[1];
     assert_eq!(
-        BqsqlDocumentItemType::QUERY_SELECT_LIST_ITEM,
+        BqsqlDocumentItemType::QuerySelectListItem,
         query_list_item_0.item_type
     );
     assert_eq!(None, query_list_item_0.range);
@@ -148,7 +203,7 @@ fn select_select_as_struct_query() {
 
     //--- --- --- PARENTHESES_OPEN
     assert_eq!(
-        BqsqlDocumentItemType::PARENTHESES_OPEN,
+        BqsqlDocumentItemType::ParenthesesOpen,
         query_list_item_0.items[0].item_type
     );
     assert_eq!(None, query_list_item_0.items[0].range);
@@ -156,7 +211,7 @@ fn select_select_as_struct_query() {
 
     //--- --- --- QUERY
     assert_eq!(
-        BqsqlDocumentItemType::QUERY,
+        BqsqlDocumentItemType::Query,
         query_list_item_0.items[1].item_type
     );
     assert_eq!(None, query_list_item_0.items[1].range);
@@ -177,10 +232,9 @@ fn select_select_as_struct_query() {
     //--- --- --- --- --- --- AS_ALIAS
     //--- --- --- --- --- --- ALIAS
 
-
     //--- --- --- PARENTHESES_CLOSE
     assert_eq!(
-        BqsqlDocumentItemType::PARENTHESES_CLOSE,
+        BqsqlDocumentItemType::ParenthesesClose,
         query_list_item_0.items[2].item_type
     );
     assert_eq!(Some([1, 2, 3]), query_list_item_0.items[2].range);
@@ -188,21 +242,20 @@ fn select_select_as_struct_query() {
 
     //--- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::AS_ALIAS,
+        BqsqlDocumentItemType::AsAlias,
         query_list_item_0.items[2].item_type
     );
     assert_eq!(Some([1, 2, 3]), query_list_item_0.items[2].range);
     assert_eq!(0, query_list_item_0.items[2].items.len());
-    
+
     //--- --- --- ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::AS_ALIAS,
+        BqsqlDocumentItemType::Alias,
         query_list_item_0.items[3].item_type
     );
     assert_eq!(Some([1, 2, 3]), query_list_item_0.items[3].range);
     assert_eq!(0, query_list_item_0.items[3].items.len());
-    
-    //
-    //
 
+    //
+    //
 }

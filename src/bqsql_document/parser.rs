@@ -114,7 +114,7 @@ fn handle_query_resolve_select<'a>(
     tokens: &[[usize; 3]],
     index: usize,
 ) -> (BqsqlDocumentItem, usize) {
-    if tokens.len() > index {
+    if tokens.len() > index + 1 {
         if let Some(string_in_range) = get_string_in_range(lines, &tokens[index + 1]) {
             let string_in_range_upper = string_in_range.to_uppercase();
 
@@ -422,7 +422,7 @@ fn handle_query_resolve_select_list<'a>(
 
             if ["+", "-", "/", "*"].contains(&string_in_range) {
                 select_item_items.push(BqsqlDocumentItem {
-                    item_type: BqsqlDocumentItemType::OPERATOR,
+                    item_type: BqsqlDocumentItemType::Operator,
                     range: Some(tokens[index]),
                     items: vec![],
                 });

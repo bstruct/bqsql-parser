@@ -23,7 +23,7 @@ pub enum BqsqlDocumentItemType {
     Keyword,
     String,
     Number,
-    OPERATOR,
+    Operator,
     // TYPE,
     // FUNCTION,
     // METHOD,
@@ -36,7 +36,7 @@ pub enum BqsqlDocumentItemType {
 
     Query,
 
-    QueryWith,
+    // QueryWith,
 
     QuerySelect,
     QuerySelectAll,

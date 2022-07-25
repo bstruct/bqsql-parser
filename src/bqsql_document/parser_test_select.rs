@@ -81,7 +81,7 @@ fn tiny_query() {
     assert_eq!(0, query_list_item_0_items[0].items.len());
 
     assert_eq!(
-        BqsqlDocumentItemType::OPERATOR,
+        BqsqlDocumentItemType::Operator,
         query_list_item_0_items[1].item_type
     );
     assert_eq!(Some([0, 8, 9]), query_list_item_0_items[1].range);
@@ -148,7 +148,7 @@ fn tiny_query_second_line() {
     assert_eq!(0, query_list_item_0_items[0].items.len());
 
     assert_eq!(
-        BqsqlDocumentItemType::OPERATOR,
+        BqsqlDocumentItemType::Operator,
         query_list_item_0_items[1].item_type
     );
     assert_eq!(Some([1, 8, 9]), query_list_item_0_items[1].range);
@@ -215,7 +215,7 @@ fn comment_and_tiny_query() {
     assert_eq!(0, query_list_item_0_items[0].items.len());
 
     assert_eq!(
-        BqsqlDocumentItemType::OPERATOR,
+        BqsqlDocumentItemType::Operator,
         query_list_item_0_items[1].item_type
     );
     assert_eq!(Some([1, 8, 9]), query_list_item_0_items[1].range);
@@ -360,7 +360,7 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- OPERATOR
     assert_eq!(
-        BqsqlDocumentItemType::OPERATOR,
+        BqsqlDocumentItemType::Operator,
         list_item_0.items[1].item_type
     );
     assert_eq!(Some([0, 26, 27]), list_item_0.items[1].range);

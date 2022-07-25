@@ -3,7 +3,7 @@ use regex::Regex;
 
 pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"`.*`|'.*'|\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
+        static ref RE: Regex = Regex::new(r"`.*`|\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
     }
 
     let mut tokens: Vec<[usize; 3]> = Vec::new();
@@ -16,19 +16,16 @@ pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
         for p1 in find_strings_and_line_comments(line) {
             gaps.push([previous_gap_start, p1[0]]);
             previous_gap_start = p1[1];
-
-            // let partial = line[p1[0]..p1[1]].to_string();
-            // tokens.push(BqsqlDocumentToken {
-            //     from: BqsqlDocumentPosition::new(line_index, p1[0]),
-            //     to: BqsqlDocumentPosition::new(line_index, p1[1]),
-            //     token: partial,
-            // });
             tokens.push([line_index, p1[0], p1[1]]);
         }
 
         if gaps.len() == 0 {
             gaps.push([0, line.len()])
-        };
+        } else {
+            if previous_gap_start < line.len() {
+                gaps.push([previous_gap_start, line.len()]);
+            }
+        }
 
         for gap in gaps {
             if gap[0] == gap[1] {
@@ -40,11 +37,6 @@ pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
             for m in RE.find_iter(adjusted_line) {
                 let partial = &adjusted_line[m.start()..m.end()];
                 if partial.trim().len() > 0 {
-                    // tokens.push(BqsqlDocumentToken {
-                    //     from: BqsqlDocumentPosition::new(line_index, gap[0] + m.start()),
-                    //     to: BqsqlDocumentPosition::new(line_index, gap[0] + m.end()),
-                    //     token: partial,
-                    // });
                     tokens.push([line_index, gap[0] + m.start(), gap[0] + m.end()]);
                 }
             }
@@ -64,11 +56,10 @@ fn parse_tokens_single_line_operation() {
 
     assert_eq!(5, result.len());
     assert_eq!([0, 4, 10], result[0]);
-    assert_eq!([0, 11,13], result[1]);
+    assert_eq!([0, 11, 13], result[1]);
     assert_eq!([0, 13, 14], result[2]);
     assert_eq!([0, 14, 18], result[3]);
     assert_eq!([0, 19, 63], result[4]);
-
 }
 
 #[test]
@@ -82,7 +73,6 @@ fn parse_tokens_single_line_string() {
     assert_eq!([0, 0, 6], result[0]);
     assert_eq!([0, 7, 30], result[1]);
     assert_eq!([0, 31, 75], result[2]);
-
 }
 
 #[test]
@@ -99,7 +89,6 @@ fn parse_tokens_parenthisis() {
     assert_eq!([0, 11, 12], result[5]);
     assert_eq!([0, 12, 13], result[6]);
     assert_eq!([0, 13, 14], result[7]);
-
 }
 
 #[test]
@@ -110,11 +99,9 @@ fn parse_tokens_single_line_string_with_double_dash() {
 
     assert_eq!([0, 0, 6], result[0]);
     assert_eq!([0, 7, 29], result[1]);
-
 }
 
 #[test]
-#[ignore = "the single quote string parse was moved to the `parse_tokens` function"]
 fn parse_tokens_strings() {
     let result =
         parse_tokens(" SELECT 'this is a \\' -- string ',\"this is also a \\\" -- string \"");
@@ -125,11 +112,9 @@ fn parse_tokens_strings() {
     assert_eq!([0, 8, 33], result[1]);
     assert_eq!([0, 33, 34], result[2]);
     assert_eq!([0, 34, 64], result[3]);
-
 }
 
 #[test]
-#[ignore = "the single quote string parse was moved to the `parse_tokens` function"]
 fn parse_tokens_strings_with_space() {
     let result =
         parse_tokens(" SELECT 'this is a \\' -- string ', \"this is also a \\\" -- string \"");
@@ -140,60 +125,50 @@ fn parse_tokens_strings_with_space() {
     assert_eq!([0, 8, 33], result[1]);
     assert_eq!([0, 33, 34], result[2]);
     assert_eq!([0, 35, 65], result[3]);
-
 }
 
 #[test]
 fn parse_tokens_strings_multi_select() {
-    let result =
-        parse_tokens(" SELECT (SELECT AS STRUCT 2+2 AS asas, 'ASDASD' AS qweqwe) AS XXX");
+    let result = parse_tokens(" SELECT (SELECT AS STRUCT 2+2 AS asas, 'ASDASD' AS qweqwe) AS XXX");
 
     assert_eq!(17, result.len());
 
     assert_eq!([0, 1, 7], result[0]);
-
 }
 
 #[test]
 fn parse_tokens_single_quote_in_string() {
-    let result =
-        parse_tokens("SELECT 'Timmy O\'Hara'");
-
-    assert_eq!(2, result.len());
-
-    assert_eq!([0, 0, 6], result[0]);
-    assert_eq!([0, 7, 21], result[1]);
-
-}
-
-#[test]
-fn parse_tokens_double_quote_in_string() {
-    let result =
-        parse_tokens("SELECT \"Timmy O'Hara\"");
-
-    assert_eq!(2, result.len());
-
-    assert_eq!([0, 0, 6], result[0]);
-    assert_eq!([0, 7, 21], result[1]);
-
-}
-
-#[test]
-fn parse_tokens_single_quote_in_string_double_escape() {
-    let result =
-        parse_tokens("SELECT 'Timmy O\\\'Hara'");
+    let result = parse_tokens("SELECT 'Timmy O\\\'Hara'");
 
     assert_eq!(2, result.len());
 
     assert_eq!([0, 0, 6], result[0]);
     assert_eq!([0, 7, 22], result[1]);
+}
 
+#[test]
+fn parse_tokens_double_quote_in_string() {
+    let result = parse_tokens("SELECT \"Timmy O'Hara\"");
+
+    assert_eq!(2, result.len());
+
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 21], result[1]);
+}
+
+#[test]
+fn parse_tokens_single_quote_in_string_double_escape() {
+    let result = parse_tokens("SELECT 'Timmy O\\\'Hara'");
+
+    assert_eq!(2, result.len());
+
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 22], result[1]);
 }
 
 #[test]
 fn parse_tokens_single_quote_in_string_double_escape_multiple_columns() {
-    let result =
-        parse_tokens("SELECT 'Timmy O\\\'Hara', 2 AS second_column");
+    let result = parse_tokens("SELECT 'Timmy O\\\'Hara', 2 AS second_column");
 
     assert_eq!(6, result.len());
 
@@ -203,22 +178,37 @@ fn parse_tokens_single_quote_in_string_double_escape_multiple_columns() {
     assert_eq!([0, 24, 25], result[3]);
     assert_eq!([0, 26, 28], result[4]);
     assert_eq!([0, 29, 42], result[5]);
-
 }
 
 #[test]
 fn parse_tokens_string_hell() {
-    let result =
-        parse_tokens("    SELECT 23+2.45, \n'another\"\"\"\"\"\"\" \\\' test', \"test ''''''' \\\" this\"");
+    let bqsql = include_str!("query_files/selects.bqsql");
 
-    assert_eq!(8, result.len());
+    let result = parse_tokens(bqsql);
 
-    // assert_eq!([0, 0, 6], result[0]);
-    // assert_eq!([0, 7, 22], result[1]);
-    // assert_eq!([0, 22, 23], result[2]);
-    // assert_eq!([0, 24, 25], result[3]);
-    // assert_eq!([0, 26, 28], result[4]);
-    // assert_eq!([0, 29, 42], result[5]);
+    assert!(result.len() > 30);
+
+    let l0: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 0).map(|l| *l).collect();
+    assert_eq!(1, l0.len());
+    assert_eq!([0, 0, 6], l0[0]);
+
+    let l1: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 1).map(|l| *l).collect();
+    assert_eq!(4, l1.len());
+
+    let l2: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 2).map(|l| *l).collect();
+    assert_eq!(2, l2.len());
+
+    let l3: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 3).map(|l| *l).collect();
+    assert_eq!(2, l3.len());
+
+    let l5: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 5).map(|l| *l).collect();
+    assert_eq!(9, l5.len());
+
+    let l7: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 7).map(|l| *l).collect();
+    assert_eq!(9, l7.len());
+    
+    let l9: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 9).map(|l| *l).collect();
+    assert_eq!(9, l9.len());
 
 }
 
@@ -229,7 +219,7 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
     let mut positions: Vec<[usize; 2]> = Vec::new();
     let mut index: usize = 0;
     let mut previous_double_quote: Option<usize> = None;
-    // let mut previous_single_quote: Option<usize> = None;
+    let mut previous_single_quote: Option<usize> = None;
 
     for character in line.chars() {
         if character == '\\' {
@@ -237,8 +227,7 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             index = index + 1;
             continue;
         }
-        if character == '-' && previous_double_quote.is_none() //&& previous_single_quote.is_none() 
-        {
+        if character == '-' && previous_double_quote.is_none() && previous_single_quote.is_none() {
             if possible_line_comment {
                 positions.push([index - 1, line.len()]);
                 return positions;
@@ -248,8 +237,7 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             continue;
         }
 
-        if character == '"' //&& previous_single_quote.is_none() 
-        {
+        if character == '"' && previous_single_quote.is_none() {
             if !possible_escape_char {
                 if previous_double_quote.is_some() {
                     positions.push([previous_double_quote.unwrap(), index + 1]);
@@ -260,16 +248,16 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             }
         }
 
-        // if character == '\'' && previous_double_quote.is_none() {
-        //     if !possible_escape_char {
-        //         if previous_single_quote.is_some() {
-        //             positions.push([previous_single_quote.unwrap(), index + 1]);
-        //             previous_single_quote = None;
-        //         } else {
-        //             previous_single_quote = Some(index);
-        //         }
-        //     }
-        // }
+        if character == '\'' && previous_double_quote.is_none() {
+            if !possible_escape_char {
+                if previous_single_quote.is_some() {
+                    positions.push([previous_single_quote.unwrap(), index + 1]);
+                    previous_single_quote = None;
+                } else {
+                    previous_single_quote = Some(index);
+                }
+            }
+        }
 
         possible_escape_char = false;
         index = index + 1;
@@ -307,19 +295,17 @@ fn find_strings_and_line_comments_double_quote_string_and_comment() {
 }
 
 #[test]
-#[ignore = "the single quote string parse was moved to the `parse_tokens` function"]
 fn find_strings_and_line_comments_single_quote_string_and_comment() {
     let result = find_strings_and_line_comments(
         " SELECT 'this is a \\' -- string ' --test, another `table` 123 \"back\" to 'dust'",
     );
 
     assert_eq!(2, result.len());
-    assert_eq!([8,33], result[0]);
-    assert_eq!([34,78], result[1]);
+    assert_eq!([8, 33], result[0]);
+    assert_eq!([34, 78], result[1]);
 }
 
 #[test]
-#[ignore = "the single quote string parse was moved to the `parse_tokens` function"]
 fn find_strings_and_line_comments_strings() {
     let result = find_strings_and_line_comments(
         " SELECT 'this is a \\' -- string ',\"this is also a \\\" -- string \"",

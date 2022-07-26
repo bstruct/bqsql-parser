@@ -31,12 +31,16 @@ pub enum BqsqlDocumentItemType {
     ParenthesesClose,
     Comma,
 
-    AsAlias,
+    KeywordAs,
     Alias,
 
     Query,
 
-    // QueryWith,
+    QueryWith,
+    QueryWithRecursive,
+    //CTE stands for 'common table expressions'. 
+    //The name of the table in the WITH statement
+    QueryCteName,
 
     QuerySelect,
     QuerySelectAll,

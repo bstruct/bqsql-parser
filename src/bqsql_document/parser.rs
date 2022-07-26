@@ -510,7 +510,7 @@ fn handle_query_resolve_select_list<'a>(
 
             if string_in_range == "AS" {
                 select_item_items.push(BqsqlDocumentItem {
-                    item_type: BqsqlDocumentItemType::AsAlias,
+                    item_type: BqsqlDocumentItemType::KeywordAs,
                     range: Some(tokens[index]),
                     items: vec![],
                 });

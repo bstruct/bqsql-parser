@@ -376,25 +376,19 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::AsAlias,
+        BqsqlDocumentItemType::KeywordAs,
         list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 29, 31]), list_item_0.items[3].range);
     assert_eq!(0, list_item_0.items[3].items.len());
 
     //--- --- --- --- --- --- ALIAS
-    assert_eq!(
-        BqsqlDocumentItemType::Alias,
-        list_item_0.items[4].item_type
-    );
+    assert_eq!(BqsqlDocumentItemType::Alias, list_item_0.items[4].item_type);
     assert_eq!(Some([0, 32, 36]), list_item_0.items[4].range);
     assert_eq!(0, list_item_0.items[4].items.len());
 
     //--- --- --- --- --- --- Comma
-    assert_eq!(
-        BqsqlDocumentItemType::Comma,
-        list_item_0.items[5].item_type
-    );
+    assert_eq!(BqsqlDocumentItemType::Comma, list_item_0.items[5].item_type);
     assert_eq!(Some([0, 36, 37]), list_item_0.items[5].range);
     assert_eq!(0, list_item_0.items[5].items.len());
 
@@ -417,20 +411,17 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::AsAlias,
+        BqsqlDocumentItemType::KeywordAs,
         list_item_1.items[1].item_type
     );
     assert_eq!(Some([0, 47, 49]), list_item_1.items[1].range);
     assert_eq!(0, list_item_1.items[1].items.len());
-    
+
     //--- --- --- --- --- --- ALIAS
-    assert_eq!(
-        BqsqlDocumentItemType::Alias,
-        list_item_1.items[2].item_type
-    );
+    assert_eq!(BqsqlDocumentItemType::Alias, list_item_1.items[2].item_type);
     assert_eq!(Some([0, 50, 56]), list_item_1.items[2].range);
     assert_eq!(0, list_item_1.items[2].items.len());
-    
+
     //--- --- --- PARENTHESES_CLOSE
     assert_eq!(
         BqsqlDocumentItemType::ParenthesesClose,
@@ -441,7 +432,7 @@ fn select_select_as_struct_query() {
 
     //--- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::AsAlias,
+        BqsqlDocumentItemType::KeywordAs,
         query_list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 58, 60]), query_list_item_0.items[3].range);
@@ -461,7 +452,6 @@ fn select_select_as_struct_query() {
 
 #[test]
 fn queries_with() {
-
     let document = BqsqlDocument::parse(
         r#"WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
 SELECT *
@@ -470,7 +460,47 @@ FROM
     q3 AS (SELECT * FROM q1),  # q1 resolves to my_query
     q1 AS (SELECT * FROM q1),  # q1 (in the query) resolves to my_query
     q4 AS (SELECT * FROM q1)   # q1 resolves to the WITH subquery on the previous line.
-SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#);
+SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#,
+    );
+
+    //
+    //Query
+    //--- QueryWith
+    //--- --- Keyword
+    //--- --- QueryCteName
+    //--- --- KeywordAs
+    //--- --- ParenthesesOpen
+    //--- --- --- XXXX
+    //--- --- --- XXXX
+    //--- --- ParenthesesClose
+
+    //--- --- QuerySelect
+    //--- --- Keyword
+    //--- --- QuerySelectListItem
+
+    //--- --- KEYWORD
+    //--- --- QUERY_SELECT_LIST_ITEM
+    //--- --- --- PARENTHESES_OPEN
+    //--- --- --- QUERY
+    //--- --- --- --- QUERY_SELECT_AS_STRUCT
+    //--- --- --- --- --- KEYWORD
+    //--- --- --- --- --- KEYWORD
+    //--- --- --- --- --- KEYWORD
+    //--- --- --- --- --- QUERY_SELECT_LIST_ITEM
+    //--- --- --- --- --- --- NUMBER
+    //--- --- --- --- --- --- OPERATOR
+    //--- --- --- --- --- --- NUMBER
+    //--- --- --- --- --- --- AS_ALIAS
+    //--- --- --- --- --- --- ALIAS
+    //--- --- --- --- --- --- Comma
+    //--- --- --- --- --- QUERY_SELECT_LIST_ITEM
+    //--- --- --- --- --- --- STRING
+    //--- --- --- --- --- --- AS_ALIAS
+    //--- --- --- --- --- --- ALIAS
+    //--- --- --- PARENTHESES_CLOSE
+    //--- --- --- AS_ALIAS
+    //--- --- --- ALIAS
+    //
 
     assert_eq!(1, document.items.len());
 }
@@ -478,7 +508,6 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 #[test]
 #[ignore = "not ready yet"]
 fn queries_file() {
-
     let bqsql = include_str!("query_files/queries.bqsql");
 
     let document = BqsqlDocument::parse(bqsql);

@@ -458,3 +458,30 @@ fn select_select_as_struct_query() {
     //
     //
 }
+
+#[test]
+fn queries_with() {
+
+    let document = BqsqlDocument::parse(
+        r#"WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
+SELECT *
+FROM
+(WITH q2 AS (SELECT * FROM q1),  # q1 resolves to my_query
+    q3 AS (SELECT * FROM q1),  # q1 resolves to my_query
+    q1 AS (SELECT * FROM q1),  # q1 (in the query) resolves to my_query
+    q4 AS (SELECT * FROM q1)   # q1 resolves to the WITH subquery on the previous line.
+SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#);
+
+    assert_eq!(1, document.items.len());
+}
+
+#[test]
+#[ignore = "not ready yet"]
+fn queries_file() {
+
+    let bqsql = include_str!("query_files/queries.bqsql");
+
+    let document = BqsqlDocument::parse(bqsql);
+
+    assert_eq!(97, document.items.len());
+}

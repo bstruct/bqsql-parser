@@ -35,7 +35,11 @@ impl BqsqlDocument {
                 if let Some(string_in_range) = get_string_in_range(lines, &tokens[index]) {
                     if string_in_range != ";" {
                         index = index + 1;
+                    } else {
+                        break;
                     }
+                } else {
+                    index = index + 1;
                 }
             }
 

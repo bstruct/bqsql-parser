@@ -181,10 +181,13 @@ fn parse_tokens_single_quote_in_string_double_escape_multiple_columns() {
 }
 
 #[test]
-fn parse_tokens_string_hell() {
-    let bqsql = include_str!("query_files/selects.bqsql");
+fn parse_tokens_queries_file() {
+    let bqsql = include_str!("query_files/queries.bqsql");
 
+    let now = std::time::Instant::now();
     let result = parse_tokens(bqsql);
+    let elapsed_time = now.elapsed();
+    println!("took {} ms", elapsed_time.as_millis());
 
     assert!(result.len() > 30);
 
@@ -206,10 +209,9 @@ fn parse_tokens_string_hell() {
 
     let l7: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 7).map(|l| *l).collect();
     assert_eq!(9, l7.len());
-    
+
     let l9: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 9).map(|l| *l).collect();
     assert_eq!(9, l9.len());
-
 }
 
 fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
@@ -227,6 +229,11 @@ fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {
             index = index + 1;
             continue;
         }
+        if character == '#' && previous_double_quote.is_none() && previous_single_quote.is_none() {
+            positions.push([index, line.len()]);
+            return positions;
+        }
+
         if character == '-' && previous_double_quote.is_none() && previous_single_quote.is_none() {
             if possible_line_comment {
                 positions.push([index - 1, line.len()]);
@@ -314,4 +321,16 @@ fn find_strings_and_line_comments_strings() {
     assert_eq!(2, result.len());
     assert_eq!([8, 33], result[0]);
     assert_eq!([34, 64], result[1]);
+}
+
+#[test]
+fn find_strings_and_line_hashtag_comment() {
+    let result = find_strings_and_line_comments(
+        " SELECT 'this is a \\' -- string ',\"this is also a \\\" -- string \" #really",
+    );
+
+    assert_eq!(3, result.len());
+    assert_eq!([8, 33], result[0]);
+    assert_eq!([34, 64], result[1]);
+    assert_eq!([65, 72], result[2]);
 }

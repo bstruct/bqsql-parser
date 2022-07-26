@@ -137,11 +137,11 @@ SELECT * FROM
 
 SELECT * FROM
   (SELECT product, sales, quarter FROM Produce)
-  PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2', 'Q3');
+  PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2', 'Q3'));
 
 SELECT * FROM
   (SELECT sales, quarter FROM Produce)
-  PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2', 'Q3');
+  PIVOT(SUM(sales) FOR quarter IN ('Q1', 'Q2', 'Q3'));
 
 SELECT * FROM
   (SELECT product, sales, quarter FROM Produce)
@@ -418,7 +418,7 @@ SELECT *
 FROM
   (WITH q2 AS (SELECT * FROM q1) SELECT * FROM q2);
 
-WITH q1 AS (SELECT SchoolID FROM Roster)
+WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
 SELECT *
 FROM
   (WITH q2 AS (SELECT * FROM q1),  # q1 resolves to my_query

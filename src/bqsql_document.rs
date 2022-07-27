@@ -1,12 +1,21 @@
 use serde::Serialize;
 
+use self::bsql_interpreter::BqsqlInterpreter;
+
 pub mod parser;
 pub mod parser_test_select;
 pub mod token_parser;
+pub mod bsql_interpreter;
 
 #[derive(Serialize, Clone)]
 pub struct BqsqlDocument {
     pub items: Vec<BqsqlDocumentItem>,
+}
+
+impl BqsqlDocument {
+    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {        
+        return BqsqlInterpreter::new(bqsql).iterate().compile();
+   }
 }
 
 #[derive(Serialize, Clone)]
@@ -49,8 +58,12 @@ pub enum BqsqlDocumentItemType {
     QuerySelectDistinct,
     QuerySelectAsStruct,
     QuerySelectAsValue,
-    // QUERY_SELECT_SELECT_LIST,
+
     QuerySelectListItem,
+    QuerySelectStar,
+    QuerySelectColumnName,
+    
+    
     QueryFrom,
 
 }

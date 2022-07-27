@@ -465,43 +465,94 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //
     //Query
+
     //--- QueryWith
     //--- --- Keyword
     //--- --- QueryCteName
     //--- --- KeywordAs
     //--- --- ParenthesesOpen
-    //--- --- --- XXXX
-    //--- --- --- XXXX
+    //--- --- --- QuerySelect
+    //--- --- ---  ---Keyword
+    //--- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- QuerySelectColumnName
+    //--- --- --- QueryFrom
+    //--- --- --- --- Keyword
+    //--- --- --- --- QueryCteName
     //--- --- ParenthesesClose
 
+    //--- QuerySelect
+    //--- --- Keyword
+    //--- --- QuerySelectListItem
+    //--- --- --- QuerySelectStar
+
+    //--- QueryFrom
+    //--- --- Keyword
+
+    //--- --- ParenthesesOpen
+
+    //--- --- QueryWith
+    //--- --- --- Keyword
+    //--- --- --- QueryCteName
+    //--- --- --- KeywordAs
+    //--- --- --- ParenthesesOpen
+    //--- --- --- --- QuerySelect
+    //--- --- --- --- --- Keyword
+    //--- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- QueryFrom
+    //--- --- --- --- --- Keyword
+    //--- --- --- --- --- QueryCteName
+    //--- --- --- ParenthesesClose
+    //--- --- --- Comma
+
+    //--- --- --- QueryCteName
+    //--- --- --- KeywordAs
+    //--- --- --- ParenthesesOpen
+    //--- --- --- --- QuerySelect
+    //--- --- --- ---  ---Keyword
+    //--- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- QueryFrom
+    //--- --- --- --- --- Keyword
+    //--- --- --- --- --- QueryCteName
+    //--- --- --- ParenthesesClose
+    //--- --- --- Comma
+
+    //--- --- --- QueryCteName
+    //--- --- --- --- KeywordAs
+    //--- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- QuerySelect
+    //--- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- ParenthesesClose
+    //--- --- --- --- Comma
+
+    //--- --- --- QueryCteName
+    //--- --- --- --- KeywordAs
+    //--- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- QuerySelect
+    //--- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- ParenthesesClose
+    
     //--- --- QuerySelect
     //--- --- --- Keyword
     //--- --- --- QuerySelectListItem
-    //--- --- --- --- star?
+    //--- --- --- --- QuerySelectStar
     //--- --- QueryFrom
     //--- --- --- Keyword
-    //--- --- --- ParenthesesOpen
+    //--- --- --- QueryCteName
 
-    //--- --- --- QUERY
-    //--- --- --- --- QUERY_SELECT_AS_STRUCT
-    //--- --- --- --- --- KEYWORD
-    //--- --- --- --- --- KEYWORD
-    //--- --- --- --- --- KEYWORD
-    //--- --- --- --- --- QUERY_SELECT_LIST_ITEM
-    //--- --- --- --- --- --- NUMBER
-    //--- --- --- --- --- --- OPERATOR
-    //--- --- --- --- --- --- NUMBER
-    //--- --- --- --- --- --- AS_ALIAS
-    //--- --- --- --- --- --- ALIAS
-    //--- --- --- --- --- --- Comma
-    //--- --- --- --- --- QUERY_SELECT_LIST_ITEM
-    //--- --- --- --- --- --- STRING
-    //--- --- --- --- --- --- AS_ALIAS
-    //--- --- --- --- --- --- ALIAS
-
-    
-    //--- --- --- ParenthesesClose
-    //--- --- --- Semicolon
+    //--- --- ParenthesesClose
+    //--- Semicolon
     //
 
     assert_eq!(1, document.items.len());

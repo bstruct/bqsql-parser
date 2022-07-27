@@ -475,12 +475,13 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- ParenthesesClose
 
     //--- --- QuerySelect
-    //--- --- Keyword
-    //--- --- QuerySelectListItem
+    //--- --- --- Keyword
+    //--- --- --- QuerySelectListItem
+    //--- --- --- --- star?
+    //--- --- QueryFrom
+    //--- --- --- Keyword
+    //--- --- --- ParenthesesOpen
 
-    //--- --- KEYWORD
-    //--- --- QUERY_SELECT_LIST_ITEM
-    //--- --- --- PARENTHESES_OPEN
     //--- --- --- QUERY
     //--- --- --- --- QUERY_SELECT_AS_STRUCT
     //--- --- --- --- --- KEYWORD
@@ -497,9 +498,10 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- --- --- STRING
     //--- --- --- --- --- --- AS_ALIAS
     //--- --- --- --- --- --- ALIAS
-    //--- --- --- PARENTHESES_CLOSE
-    //--- --- --- AS_ALIAS
-    //--- --- --- ALIAS
+
+    
+    //--- --- --- ParenthesesClose
+    //--- --- --- Semicolon
     //
 
     assert_eq!(1, document.items.len());

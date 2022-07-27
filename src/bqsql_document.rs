@@ -21,6 +21,8 @@ pub enum BqsqlDocumentItemType {
     // UNEXPECTED = -1,
     // UNKNOWN = 0,
     Keyword,
+    KeywordAs,
+
     String,
     Number,
     Operator,
@@ -30,15 +32,15 @@ pub enum BqsqlDocumentItemType {
     ParenthesesOpen,
     ParenthesesClose,
     Comma,
+    Semicolon,
 
-    KeywordAs,
     Alias,
 
     Query,
 
     QueryWith,
     QueryWithRecursive,
-    //CTE stands for 'common table expressions'. 
+    //CTE stands for 'common table expressions'.
     //The name of the table in the WITH statement
     QueryCteName,
 
@@ -49,5 +51,6 @@ pub enum BqsqlDocumentItemType {
     QuerySelectAsValue,
     // QUERY_SELECT_SELECT_LIST,
     QuerySelectListItem,
-    // QUERY_FROM,
+    QueryFrom,
+
 }

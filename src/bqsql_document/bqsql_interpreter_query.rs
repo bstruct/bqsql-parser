@@ -6,7 +6,7 @@ impl BqsqlInterpreter<'_> {
             //if it's the top level of the document, then signal that this block is a "Query".
             //all subsequent items will be placed nested inside
             if self.is_top_node() {
-                self.new_parent_document_item(BqsqlDocumentItemType::Query);
+                self.add_node_item(BqsqlDocumentItemType::Query);
             }
 
             // self

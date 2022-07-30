@@ -12,15 +12,14 @@ pub(crate) struct BqsqlInterpreter<'a> {
     pub(crate) current_node: Box<Option<BqsqlDocumentItem>>,
 
     //generated elements
-    pub(crate) items: Box<Vec<BqsqlDocumentItem>>,
+    pub(crate) items: Box<Vec<Box<BqsqlDocumentItem>>>,
 }
 
 impl BqsqlInterpreter<'_> {
     pub(crate) fn new(bqsql: &str) -> BqsqlInterpreter {
         let lines = bqsql.lines().map(|l| l).collect::<Vec<&str>>();
         let tokens = token_parser::parse_tokens(bqsql);
-
-        let items = Box::new(Vec::<BqsqlDocumentItem>::new());
+        let items = Box::new(Vec::<Box<BqsqlDocumentItem>>::new());
 
         BqsqlInterpreter {
             lines: Box::new(lines),
@@ -62,24 +61,33 @@ impl BqsqlInterpreter<'_> {
         self.next()
     }
 
-    pub(crate) fn new_parent_document_item(
-        &mut self,
-        item_type: BqsqlDocumentItemType,
-    ) -> &BqsqlInterpreter {
+    pub(crate) fn add_node_item(&mut self, item_type: BqsqlDocumentItemType) -> &BqsqlInterpreter {
         if self.current_node.is_some() {
-            // self.current_node = Some(&BqsqlDocumentItem {
-            //     item_type: item_type,
-            //     range: None,
-            //     items: Box::new(vec![]),
-            //     parent: Box::new(None),
-            // });
+
+            let item = BqsqlDocumentItem {
+                item_type: item_type,
+                range: None,
+                items: Box::new(vec![]),
+                parent: self.current_node,
+            };
+            
+            self.current_node.unwrap().items.push(item);
+            
+            self.current_node = Box::new(Some(item));
+            
+            todo!()
+
         } else {
-            self.current_node = Box::new(Some(BqsqlDocumentItem {
+            let item = BqsqlDocumentItem {
                 item_type: item_type,
                 range: None,
                 items: Box::new(vec![]),
                 parent: Box::new(None),
-            }));
+            };
+
+            self.current_node = Box::new(Some(item));
+
+            self.items.push(Box::new(item));
         }
 
         self
@@ -97,7 +105,7 @@ impl BqsqlInterpreter<'_> {
         }
         None
     }
-    pub(crate) fn get_bqsql_document(&self) -> Vec<BqsqlDocumentItem> {
+    pub(crate) fn get_bqsql_document(&self) -> Vec<Box<BqsqlDocumentItem>> {
         self.items.to_vec()
     }
 }

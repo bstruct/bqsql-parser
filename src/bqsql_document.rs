@@ -1,11 +1,13 @@
 use serde::Serialize;
 
-use self::bsql_interpreter::BqsqlInterpreter;
+use self::bqsql_interpreter::BqsqlInterpreter;
 
+pub mod bqsql_interpreter;
+pub mod bqsql_interpreter_query;
+pub mod bqsql_keyword;
 pub mod parser;
 pub mod parser_test_select;
 pub mod token_parser;
-pub mod bsql_interpreter;
 
 #[derive(Serialize, Clone)]
 pub struct BqsqlDocument {
@@ -13,22 +15,24 @@ pub struct BqsqlDocument {
 }
 
 impl BqsqlDocument {
-    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {        
-        return BqsqlInterpreter::new(bqsql).iterate().compile();
-   }
+    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
+        BqsqlDocument {
+            items: BqsqlInterpreter::new(bqsql).iterate().get_bqsql_document(),
+        }
+    }
 }
 
 #[derive(Serialize, Clone)]
 pub struct BqsqlDocumentItem {
+    parent: Box<Option<BqsqlDocumentItem>>,
     pub item_type: BqsqlDocumentItemType,
     pub range: Option<[usize; 3]>,
-    pub items: Vec<BqsqlDocumentItem>,
+    pub items: Box<Vec<BqsqlDocumentItem>>,
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq, Clone)]
 pub enum BqsqlDocumentItemType {
-    // UNEXPECTED = -1,
-    // UNKNOWN = 0,
+    Unknown,
     Keyword,
     KeywordAs,
 
@@ -62,8 +66,6 @@ pub enum BqsqlDocumentItemType {
     QuerySelectListItem,
     QuerySelectStar,
     QuerySelectColumnName,
-    
-    
-    QueryFrom,
 
+    QueryFrom,
 }

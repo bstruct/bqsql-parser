@@ -14,23 +14,14 @@ pub struct BqsqlDocument {
     pub items: Vec<BqsqlDocumentItem>,
 }
 
-impl BqsqlDocument {
-    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
-        BqsqlDocument {
-            items: BqsqlInterpreter::new(bqsql).iterate().get_bqsql_document(),
-        }
-    }
-}
-
 #[derive(Serialize, Clone)]
 pub struct BqsqlDocumentItem {
-    parent: Box<Option<BqsqlDocumentItem>>,
     pub item_type: BqsqlDocumentItemType,
     pub range: Option<[usize; 3]>,
-    pub items: Box<Vec<BqsqlDocumentItem>>,
+    pub items: Vec<BqsqlDocumentItem>,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BqsqlDocumentItemType {
     Unknown,
     Keyword,
@@ -68,4 +59,14 @@ pub enum BqsqlDocumentItemType {
     QuerySelectColumnName,
 
     QueryFrom,
+}
+
+impl BqsqlDocument {
+    pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
+        let bqsql_interpreter = BqsqlInterpreter::new(bqsql);
+
+        BqsqlDocument {
+            items: bqsql_interpreter.collect(),
+        }
+    }
 }

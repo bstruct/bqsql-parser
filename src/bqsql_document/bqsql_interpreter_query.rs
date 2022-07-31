@@ -1,23 +1,37 @@
-use super::{bqsql_interpreter::BqsqlInterpreter, bqsql_keyword::BqsqlKeyword, BqsqlDocumentItemType};
+use super::{
+    bqsql_interpreter::{BqsqlInterpreter, BqsqlInterpreterItems},
+    bqsql_keyword::BqsqlKeyword,
+    BqsqlDocumentItem, BqsqlDocumentItemType,
+};
+
+// impl Iterator for BqsqlInterpreterItems<'_> {
+//     type Item = BqsqlDocumentItem;
+
+//     // next() is the only required method
+//     fn next(&mut self) -> Option<BqsqlDocumentItem> {
+//         if self.is_keyword_with() || self.is_keyword_select() {
+//             //     // let interpreter_document_item = self.new_document_item(BqsqlDocumentItemType::Query);
+
+//             //     // interpreter_document_item
+//             //     //     .handle_with() //expected possible "WITH"
+//             //     //     .handle_select() //expected mandatory ( to be query ) "SELECT"
+//             //     //     ;
+
+//             let mut v = Vec::new();
+//             v.push(value);
+
+//             return Some(BqsqlDocumentItem {
+//                 item_type: BqsqlDocumentItemType::Query,
+//                 range: None,
+//                 items: vec![],
+//             });
+//         }
+
+//         None
+//     }
+// }
 
 impl BqsqlInterpreter<'_> {
-    pub(crate) fn handle_query(&mut self) -> &BqsqlInterpreter {
-        if self.is_keyword_with() || self.is_keyword_select() {
-            //if it's the top level of the document, then signal that this block is a "Query".
-            //all subsequent items will be placed nested inside
-            if self.is_top_node() {
-                self.add_node_item(BqsqlDocumentItemType::Query);
-            }
-
-            // self
-            //     .handle_with() //expected possible "WITH"
-            //     .handle_select() //expected mandatory ( to be query ) "SELECT"
-            //     ;
-        }
-
-        self
-    }
-
     pub(crate) fn is_keyword_with(&self) -> bool {
         if let Some(string_in_range) = self.get_string_in_range(self.index) {
             return string_in_range == BqsqlKeyword::With;
@@ -31,21 +45,92 @@ impl BqsqlInterpreter<'_> {
         }
         false
     }
+}
 
-    pub(crate) fn handle_with(&self) -> &BqsqlInterpreter {
-        if self.is_keyword_with() {
-            // self.handle_new_node(BqsqlDocumentItemType::QueryWith)
-            //     .handle_cte_name()
-            //     .handle_keyword_as()
-            //     .handle_open_parentheses()
-            //     .handle_select()
-            //     .handle_close_parentheses()
-            //     .handle_comma();
+impl BqsqlInterpreter<'_> {
+    pub(crate) fn handle_query(&self) -> Option<BqsqlDocumentItem> {
+        if self.is_keyword_with() || self.is_keyword_select() {
+            let item = self
+                .new_interpreter_items()
+                .handle_with() //expected possible "WITH"
+                .handle_select() //expected mandatory ( to be query ) "SELECT"
+                .collect(BqsqlDocumentItemType::Query);
+
+            return Some(item);
+        }
+
+        None
+    }
+}
+
+impl<'a> BqsqlInterpreterItems<'a> {
+    pub(crate) fn handle_with(&'a mut self) -> &'a mut BqsqlInterpreterItems<'a> {
+        let interpreter = self.interpreter;
+
+        if interpreter.is_keyword_with() {
+            // let with_document_item =
+            interpreter
+                .new_interpreter_items()
+                .handle_keyword(BqsqlKeyword::With)
+                .handle_select()
+                .collect_and_append(BqsqlDocumentItemType::QueryWith);
+
+            // let with_document_item = BqsqlDocumentItem {
+            //     item_type: BqsqlDocumentItemType::QueryWith,
+            //     range: None,
+            //     items: vec![],
+            // };
+
+            // self.append(with_document_item);
+
+            //             // let with_document_item = &self
+            //             //     .interpreter
+            //             //     .new_document_item(BqsqlDocumentItemType::QueryWith);
+
+            //             self.document_item.push(with_document_item);
+
+            //             // self.handle_cte_name(&mut document_item_with)
+            //             //     .handle_keyword_as()
+            //             //     .handle_open_parentheses()
+            //             //     .handle_select()
+            //             //     .handle_close_parentheses()
+            //             //     .handle_comma();
+            //             // return Some(with_document_item);
         }
         self
     }
-    pub(crate) fn handle_select(&self) -> &BqsqlInterpreter {
-        if self.is_keyword_select() {}
+    pub(crate) fn handle_select(&'a mut self) -> &'a mut BqsqlInterpreterItems<'a> {
+        let interpreter = self.interpreter;
+
+        if interpreter.is_keyword_select() {
+            interpreter
+                .new_interpreter_items()
+                .handle_keyword(BqsqlKeyword::With)
+                .handle_select()
+                .collect_and_append(BqsqlDocumentItemType::QueryWith);
+
+            // let with_document_item = BqsqlDocumentItem {
+            //     item_type: BqsqlDocumentItemType::QuerySelect,
+            //     range: None,
+            //     items: vec![],
+            // };
+
+            // self.append(with_document_item);
+
+            //             // let with_document_item = &self
+            //             //     .interpreter
+            //             //     .new_document_item(BqsqlDocumentItemType::QueryWith);
+
+            //             self.document_item.push(with_document_item);
+
+            //             // self.handle_cte_name(&mut document_item_with)
+            //             //     .handle_keyword_as()
+            //             //     .handle_open_parentheses()
+            //             //     .handle_select()
+            //             //     .handle_close_parentheses()
+            //             //     .handle_comma();
+            //             // return Some(with_document_item);
+        }
         self
     }
 }

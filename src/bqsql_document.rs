@@ -63,10 +63,10 @@ pub enum BqsqlDocumentItemType {
 
 impl BqsqlDocument {
     pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
-        let bqsql_interpreter = BqsqlInterpreter::new(bqsql);
+        let mut bqsql_interpreter = BqsqlInterpreter::new(bqsql);
 
         BqsqlDocument {
-            items: bqsql_interpreter.collect(),
+            items: Vec::new(),
         }
     }
 }

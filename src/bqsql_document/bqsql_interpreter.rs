@@ -3,28 +3,41 @@ use crate::bqsql_document::token_parser;
 use super::{bqsql_keyword::BqsqlKeyword, BqsqlDocumentItem, BqsqlDocumentItemType};
 
 pub(crate) struct BqsqlInterpreter<'a> {
-    //base elements that were parsed and need to be available for reference
     pub(crate) lines: Vec<&'a str>,
     pub(crate) tokens: Vec<[usize; 3]>,
     pub(crate) index: usize,
 }
 
-// pub(crate) struct BqsqlInterpreterDocumentItem<'a> {
-//     pub(crate) interpreter: &'a BqsqlInterpreter<'a>,
-//     pub(crate) document_item: Box<Vec<BqsqlDocumentItem>>,
-// }
+
+impl<'a> BqsqlInterpreter<'a> {
+    pub(crate) fn new_items(self: &'a mut BqsqlInterpreter<'a>) -> BqsqlInterpreterItems<'a> {
+        let item = BqsqlInterpreterItems {
+            interpreter: self,
+            items: Vec::new(),
+        };
+
+        item
+    }
+}
+
+pub(crate) struct BqsqlInterpreterItems<'a> {
+    //base elements that were parsed and need to be available for reference
+    pub(crate) interpreter: &'a mut BqsqlInterpreter<'a>,
+    pub(crate) items: Vec<BqsqlDocumentItem>,
+}
+
+impl<'a> BqsqlInterpreterItems<'a> {
+    pub(crate) fn new(interpreter: &'a mut BqsqlInterpreter<'a>) -> BqsqlInterpreterItems<'a> {
+        let item = BqsqlInterpreterItems {
+            interpreter: interpreter,
+            items: Vec::new(),
+        };
+
+        item
+    }
+}
 
 impl BqsqlInterpreter<'_> {
-    pub(crate) fn new<'a>(bqsql: &'a str) -> BqsqlInterpreter {
-        let lines = bqsql.lines().map(|l| l).collect::<Vec<&str>>();
-        let tokens = token_parser::parse_tokens(bqsql);
-
-        BqsqlInterpreter {
-            lines: lines,
-            tokens: tokens,
-            index: 0,
-        }
-    }
     pub(crate) fn get_string_in_range(&self, index: usize) -> Option<&'_ str> {
         if self.tokens.len() > index {
             let range = &self.tokens[index];
@@ -34,77 +47,99 @@ impl BqsqlInterpreter<'_> {
         }
         None
     }
-    // pub(crate) fn new_document_item<'a>(
-    //     &'a self,
-    //     document_item_type: BqsqlDocumentItemType,
-    // ) -> BqsqlInterpreterDocumentItem {
-    //     let document_item = BqsqlDocumentItem {
-    //         item_type: document_item_type,
-    //         range: None,
-    //         items: vec![],
-    //     };
+    pub(crate) fn new(bqsql: &str) -> BqsqlInterpreter {
+        let lines = bqsql.lines().map(|l| l).collect::<Vec<&str>>();
+        let tokens = token_parser::parse_tokens(bqsql);
 
-    //     // BqsqlInterpreterDocumentItem {
-    //     //     interpreter: self,
-    //     //     document_item: Box::new(document_item),
-    //     // }
-    //     todo!()
+        BqsqlInterpreter {
+            lines: lines,
+            tokens: tokens,
+            index: 0,
+        }
+    }
+    pub(crate) fn is_keyword(&self, keyword: BqsqlKeyword) -> bool {
+        if let Some(string_in_range) = self.get_string_in_range(self.index) {
+            return string_in_range == keyword;
+        }
+        false
+    }
+
+    // pub(crate) fn xxxx(&'a mut self) -> Vec<BqsqlDocumentItem> {
+    //     // let interpreter = self;
+
+    //     // let index = self.index;
+    //     // let mut monitor_index = index;
+    //     let items = Vec::new();
+
+    //     while self.tokens.len() > self.index {
+    //         // if let Some(query) = self.handle_query() {
+    //         //     // return Some(query);
+    //         //     items.push(query);
+    //         // }
+
+    //         // if monitor_index == index {
+    //         //     // self.handle_kunknown();
+    //         // } else {
+    //         //     monitor_index = index;
+    //         // }
+
+    //         self.index += 1;
+    //     }
+
+    //     items
     // }
-
-    pub(crate) fn new_interpreter_items<'a>(&self) -> BqsqlInterpreterItems {
-        BqsqlInterpreterItems {
-            interpreter: self,
-            items: Box::new(Vec::new()),
-        }
-    }
 }
 
-impl Iterator for BqsqlInterpreter<'_> {
-    type Item = BqsqlDocumentItem;
+// impl<'a> BqsqlInterpreter<'a> {
+//     pub(crate) fn new_interpreter_items<'b>(&'a mut self) -> Box<BqsqlInterpreterItems<'a>> {
+//         let item = BqsqlInterpreterItems {
+//             interpreter: self,
+//             items: Vec::new(),
+//         };
 
-    // next() is the only required method
-    fn next(&mut self) -> Option<BqsqlDocumentItem> {
-        let mut monitor_index = self.index;
+//         Box::new(item)
+//     }
+// }
+// impl<'a> Iterator for BqsqlInterpreter<'a> {
+//     type Item = BqsqlDocumentItem;
+//     // next() is the only required method
+//     fn next(&'a mut self) -> Option<BqsqlDocumentItem> {
+//         let mut monitor_index = self.index;
+//         while self.tokens.len() > self.index {
+//             if let Some(query) = self.handle_query() {
+//                 return Some(query);
+//             }
+//             if monitor_index == self.index {
+//                 // self.handle_kunknown();
+//             } else {
+//                 monitor_index = self.index;
+//             }
+//             self.index += 1;
+//         }
+//         None
+//     }
+// }
 
-        while self.tokens.len() > self.index {
-            if let Some(query) = self.handle_query() {
-                return Some(query);
-            }
 
-            if monitor_index == self.index {
-                // self.handle_kunknown();
-            } else {
-                monitor_index = self.index;
-            }
-
-            self.index += 1;
-        }
-
-        None
-    }
-}
-
-pub(crate) struct BqsqlInterpreterItems<'a> {
-    //base elements that were parsed and need to be available for reference
-    pub(crate) interpreter: &'a BqsqlInterpreter<'a>,
-    items: Box<Vec<BqsqlDocumentItem>>,
-}
-impl<'a> BqsqlInterpreterItems<'a> {
+impl<'i> BqsqlInterpreterItems<'i> {
     // pub(crate) fn append(&'a mut self, item: BqsqlDocumentItem) -> &'a BqsqlInterpreterItems<'a> {
     //     self.items.push(item);
     //     self
-    // }
+    // }s
     // pub(crate) fn collect(&self)-> Vec<BqsqlDocumentItem>{
     //     self.items.to_vec()
     // }
-    pub(crate) fn collect(&self, item_type: BqsqlDocumentItemType) -> BqsqlDocumentItem {
+    pub(crate) fn collect(&'i self, item_type: BqsqlDocumentItemType) -> BqsqlDocumentItem {
         BqsqlDocumentItem {
             item_type,
             range: None,
             items: self.items.to_vec(),
         }
     }
-    pub(crate) fn collect_and_append(&'a mut self, item_type: BqsqlDocumentItemType) -> &'a BqsqlInterpreterItems<'a> {
+    pub(crate) fn collect_and_append(
+        &'i mut self,
+        item_type: BqsqlDocumentItemType,
+    ) -> &BqsqlInterpreterItems<'i> {
         let item = BqsqlDocumentItem {
             item_type,
             range: None,
@@ -116,10 +151,10 @@ impl<'a> BqsqlInterpreterItems<'a> {
         self
     }
     pub(crate) fn handle_keyword(
-        &'a mut self,
+        &'i mut self,
         keyword: BqsqlKeyword,
-    ) -> &'a mut BqsqlInterpreterItems<'a> {
-        let interpreter = self.interpreter;
+    ) -> &BqsqlInterpreterItems<'i> {
+        let interpreter = &self.interpreter;
         if let Some(string_in_range) = interpreter.get_string_in_range(interpreter.index) {
             if string_in_range == keyword {
                 self.items.push(BqsqlDocumentItem {
@@ -127,9 +162,15 @@ impl<'a> BqsqlInterpreterItems<'a> {
                     range: Some(interpreter.tokens[interpreter.index]),
                     items: vec![],
                 });
+
+                self.interpreter.index += 1;
             }
         }
         self
+    }
+
+    pub(crate) fn is_keyword(&self, keyword: BqsqlKeyword) -> bool {
+        self.interpreter.is_keyword(keyword)
     }
 }
 

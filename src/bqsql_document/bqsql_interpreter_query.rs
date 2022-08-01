@@ -4,76 +4,46 @@ use super::{
     BqsqlDocumentItem, BqsqlDocumentItemType,
 };
 
-// impl Iterator for BqsqlInterpreterItems<'_> {
-//     type Item = BqsqlDocumentItem;
+impl<'a> BqsqlInterpreter<'a> {
+    pub(crate) fn handle_query(&'a mut self) -> Option<BqsqlDocumentItem> {
+        if self.is_keyword(BqsqlKeyword::With) || self.is_keyword(BqsqlKeyword::Select) {
+            
+            // let interpreter = self;
+            
+            // let interpreter_items = BqsqlInterpreterItems::new(self);
 
-//     // next() is the only required method
-//     fn next(&mut self) -> Option<BqsqlDocumentItem> {
-//         if self.is_keyword_with() || self.is_keyword_select() {
-//             //     // let interpreter_document_item = self.new_document_item(BqsqlDocumentItemType::Query);
+            let interpreter_items2 = self.new_items();
+            // // let interpreter = &interpreter_items.interpreter;
+            // // let items = &interpreter_items.items;
 
-//             //     // interpreter_document_item
-//             //     //     .handle_with() //expected possible "WITH"
-//             //     //     .handle_select() //expected mandatory ( to be query ) "SELECT"
-//             //     //     ;
+            let _ = interpreter_items2.collect(BqsqlDocumentItemType::Alias);
 
-//             let mut v = Vec::new();
-//             v.push(value);
+            // let item = 
+            //     interpreter_items
+            //     // .handle_with() //expected possible "WITH"
+            //     // .handle_select() //expected mandatory ( to be query ) "SELECT"
+            //     .collect(BqsqlDocumentItemType::Query)
+            // ;
 
-//             return Some(BqsqlDocumentItem {
-//                 item_type: BqsqlDocumentItemType::Query,
-//                 range: None,
-//                 items: vec![],
-//             });
-//         }
-
-//         None
-//     }
-// }
-
-impl BqsqlInterpreter<'_> {
-    pub(crate) fn is_keyword_with(&self) -> bool {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
-            return string_in_range == BqsqlKeyword::With;
-        }
-        false
-    }
-
-    pub(crate) fn is_keyword_select(&self) -> bool {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
-            return string_in_range == BqsqlKeyword::Select;
-        }
-        false
-    }
-}
-
-impl BqsqlInterpreter<'_> {
-    pub(crate) fn handle_query(&self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword_with() || self.is_keyword_select() {
-            let item = self
-                .new_interpreter_items()
-                .handle_with() //expected possible "WITH"
-                .handle_select() //expected mandatory ( to be query ) "SELECT"
-                .collect(BqsqlDocumentItemType::Query);
-
-            return Some(item);
+            // return Some(item);
         }
 
         None
     }
 }
 
-impl<'a> BqsqlInterpreterItems<'a> {
-    pub(crate) fn handle_with(&'a mut self) -> &'a mut BqsqlInterpreterItems<'a> {
-        let interpreter = self.interpreter;
+impl<'i> BqsqlInterpreterItems<'i> {
+    pub(crate) fn handle_with(&'i mut self) -> &BqsqlInterpreterItems<'i> {
+        
+        // let interpreter = self.interpreter;
 
-        if interpreter.is_keyword_with() {
-            // let with_document_item =
-            interpreter
-                .new_interpreter_items()
-                .handle_keyword(BqsqlKeyword::With)
-                .handle_select()
-                .collect_and_append(BqsqlDocumentItemType::QueryWith);
+        if self.is_keyword(BqsqlKeyword::With) {
+            // let mut interpreter_items = self.interpreter.new_interpreter_items();
+
+            // interpreter_items
+            //     .handle_keyword(BqsqlKeyword::With)
+            //     .handle_select()
+            //     .collect_and_append(BqsqlDocumentItemType::QueryWith);
 
             // let with_document_item = BqsqlDocumentItem {
             //     item_type: BqsqlDocumentItemType::QueryWith,
@@ -99,15 +69,16 @@ impl<'a> BqsqlInterpreterItems<'a> {
         }
         self
     }
-    pub(crate) fn handle_select(&'a mut self) -> &'a mut BqsqlInterpreterItems<'a> {
-        let interpreter = self.interpreter;
+    pub(crate) fn handle_select(&'i mut self) -> &BqsqlInterpreterItems<'i> {
+        // let interpreter = self.interpreter;
 
-        if interpreter.is_keyword_select() {
-            interpreter
-                .new_interpreter_items()
-                .handle_keyword(BqsqlKeyword::With)
-                .handle_select()
-                .collect_and_append(BqsqlDocumentItemType::QueryWith);
+        if self.is_keyword(BqsqlKeyword::Select) {
+
+            // interpreter
+            //     .new_interpreter_items()
+            //     .handle_keyword(BqsqlKeyword::Select)
+            //     .handle_select()
+            //     .collect_and_append(BqsqlDocumentItemType::QueryWith);
 
             // let with_document_item = BqsqlDocumentItem {
             //     item_type: BqsqlDocumentItemType::QuerySelect,

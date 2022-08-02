@@ -66,7 +66,7 @@ impl BqsqlDocument {
         let mut bqsql_interpreter = BqsqlInterpreter::new(bqsql);
 
         BqsqlDocument {
-            items: Vec::new(),
+            items: bqsql_interpreter.collect(),
         }
     }
 }

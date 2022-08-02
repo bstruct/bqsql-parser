@@ -1,77 +1,55 @@
 use super::{
-    bqsql_interpreter::{BqsqlInterpreter, BqsqlInterpreterItems},
-    bqsql_keyword::BqsqlKeyword,
-    BqsqlDocumentItem, BqsqlDocumentItemType,
+    bqsql_interpreter::BqsqlInterpreter, bqsql_keyword::BqsqlKeyword, BqsqlDocumentItem,
+    BqsqlDocumentItemType,
 };
 
-impl<'a> BqsqlInterpreter<'a> {
-    pub(crate) fn handle_query(&'a mut self) -> Option<BqsqlDocumentItem> {
+impl BqsqlInterpreter<'_> {
+    pub(crate) fn handle_query(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_keyword(BqsqlKeyword::With) || self.is_keyword(BqsqlKeyword::Select) {
-            
-            // let interpreter = self;
-            
-            // let interpreter_items = BqsqlInterpreterItems::new(self);
+            let document_item = BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::Query,
+                vec![
+                    self.handle_with(),   //expected possible "WITH"
+                    self.handle_select(), //expected mandatory select statement
+                ],
+            );
 
-            let interpreter_items2 = self.new_items();
-            // // let interpreter = &interpreter_items.interpreter;
-            // // let items = &interpreter_items.items;
-
-            let _ = interpreter_items2.collect(BqsqlDocumentItemType::Alias);
-
-            // let item = 
-            //     interpreter_items
-            //     // .handle_with() //expected possible "WITH"
-            //     // .handle_select() //expected mandatory ( to be query ) "SELECT"
-            //     .collect(BqsqlDocumentItemType::Query)
-            // ;
-
-            // return Some(item);
+            return Some(document_item);
         }
 
         None
     }
-}
 
-impl<'i> BqsqlInterpreterItems<'i> {
-    pub(crate) fn handle_with(&'i mut self) -> &BqsqlInterpreterItems<'i> {
-        
-        // let interpreter = self.interpreter;
-
+    pub(crate) fn handle_with(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_keyword(BqsqlKeyword::With) {
-            // let mut interpreter_items = self.interpreter.new_interpreter_items();
+            let mut items = Vec::from(vec![
+                self.handle_keyword(BqsqlKeyword::With),      //WITH
+                self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
+            ]);
 
-            // interpreter_items
-            //     .handle_keyword(BqsqlKeyword::With)
-            //     .handle_select()
-            //     .collect_and_append(BqsqlDocumentItemType::QueryWith);
+            loop {
+                items.append(&mut Vec::from(vec![
+                    self.handle_cte_name(),                //common table expression (CTE)
+                    self.handle_keyword(BqsqlKeyword::As), //AS
+                    self.handle_open_parentheses(),
+                    self.handle_select(), //expected mandatory select statement
+                    self.handle_close_parentheses(),
+                    self.handle_comma(),
+                ]));
 
-            // let with_document_item = BqsqlDocumentItem {
-            //     item_type: BqsqlDocumentItemType::QueryWith,
-            //     range: None,
-            //     items: vec![],
-            // };
+                if items.last().is_none() {
+                    break;
+                }
+            }
 
-            // self.append(with_document_item);
-
-            //             // let with_document_item = &self
-            //             //     .interpreter
-            //             //     .new_document_item(BqsqlDocumentItemType::QueryWith);
-
-            //             self.document_item.push(with_document_item);
-
-            //             // self.handle_cte_name(&mut document_item_with)
-            //             //     .handle_keyword_as()
-            //             //     .handle_open_parentheses()
-            //             //     .handle_select()
-            //             //     .handle_close_parentheses()
-            //             //     .handle_comma();
-            //             // return Some(with_document_item);
+            return Some(BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::Query,
+                items,
+            ));
         }
-        self
+        None
     }
-    pub(crate) fn handle_select(&'i mut self) -> &BqsqlInterpreterItems<'i> {
-        // let interpreter = self.interpreter;
-
+    pub(crate) fn handle_select(&self) -> Option<BqsqlDocumentItem> {
         if self.is_keyword(BqsqlKeyword::Select) {
 
             // interpreter
@@ -102,7 +80,39 @@ impl<'i> BqsqlInterpreterItems<'i> {
             //             //     .handle_comma();
             //             // return Some(with_document_item);
         }
-        self
+        None
+    }
+    pub(crate) fn handle_cte_name(&mut self) -> Option<BqsqlDocumentItem> {
+        // if self.is_keyword(BqsqlKeyword::With) {
+        //     let document_item = BqsqlDocumentItem::new(
+        //         BqsqlDocumentItemType::Query,
+        //         vec![
+        //             self.handle_keyword(BqsqlKeyword::With),      //WITH
+        //             self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
+        //             self.handle_cte_name(),//common table expression (CTE)
+        //             self.handle_keyword(BqsqlKeyword::As), //AS
+        //             self.handle_open_parentheses(),
+        //             self.handle_select(), //expected mandatory select statement
+        //             self.handle_close_parentheses(),
+        //             self.handle_comma(),
+        //         ],
+        //     );
+
+        //     return Some(document_item);
+        // }
+        None
+    }
+
+    pub(crate) fn handle_open_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
+        self.handle_string(BqsqlDocumentItemType::ParenthesesOpen, "(")
+    }
+
+    pub(crate) fn handle_close_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
+        self.handle_string(BqsqlDocumentItemType::ParenthesesClose, ")")
+    }
+
+    pub(crate) fn handle_comma(&mut self) -> Option<BqsqlDocumentItem> {
+        self.handle_string(BqsqlDocumentItemType::Comma, ",")
     }
 }
 

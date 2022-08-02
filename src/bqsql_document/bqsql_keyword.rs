@@ -2,6 +2,7 @@
 pub(crate) enum BqsqlKeyword {
     As,
     With,
+    Recursive,
     Select,
     From,
     Where,
@@ -11,6 +12,7 @@ impl BqsqlKeyword {
         match self {
             BqsqlKeyword::As => "AS",
             BqsqlKeyword::With => "WITH",
+            BqsqlKeyword::Recursive => "RECURSIVE",
             BqsqlKeyword::Select => "SELECT",
             BqsqlKeyword::From => "FROM",
             BqsqlKeyword::Where => "WHERE",
@@ -53,11 +55,13 @@ fn compare_select() {
 fn compare_all() {
     assert_eq!(BqsqlKeyword::As, "AS");
     assert_eq!(BqsqlKeyword::With, "WITH");
+    assert_eq!(BqsqlKeyword::Recursive, "recursive");
     assert_eq!(BqsqlKeyword::Select, "SELECT");
     assert_eq!(BqsqlKeyword::From, "FROM");
     assert_eq!(BqsqlKeyword::Where, "WHERE");
     assert_eq!("AS", BqsqlKeyword::As);
     assert_eq!("WITH", BqsqlKeyword::With);
+    assert_eq!("recursive", BqsqlKeyword::Recursive);
     assert_eq!("SELECT", BqsqlKeyword::Select);
     assert_eq!("FROM", BqsqlKeyword::From);
     assert_eq!("WHERE", BqsqlKeyword::Where);

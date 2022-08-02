@@ -65,8 +65,12 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
+    pub(crate) fn is_in_range(&self, index: usize) -> bool {
+        self.tokens.len() > index
+    }
+
     pub(crate) fn get_string_in_range(&self, index: usize) -> Option<&'_ str> {
-        if self.tokens.len() > index {
+        if self.is_in_range(index) {
             let range = &self.tokens[index];
             if self.lines[range[0]].len() >= range[2] {
                 return Some(&self.lines[range[0]][range[1]..range[2]]);
@@ -111,121 +115,3 @@ impl BqsqlDocumentItem {
         }
     }
 }
-
-// impl<'a> Iterator for BqsqlInterpreter<'a> {
-//     type Item = BqsqlDocumentItem;
-//     // next() is the only required method
-//     fn next(&'a mut self) -> Option<BqsqlDocumentItem> {
-//         let mut monitor_index = self.index;
-//         while self.tokens.len() > self.index {
-//             if let Some(query) = self.handle_query() {
-//                 return Some(query);
-//             }
-//             if monitor_index == self.index {
-//                 // self.handle_kunknown();
-//             } else {
-//                 monitor_index = self.index;
-//             }
-//             self.index += 1;
-//         }
-//         None
-//     }
-// }
-
-// impl BqsqlInterpreter {
-//     // pub(crate) fn new<'a>(bqsql: &str) -> Box<BqsqlInterpreter> {
-//     //     let lines = bqsql.lines().map(|l| l).collect::<Vec<&str>>();
-//     //     let tokens = token_parser::parse_tokens(bqsql);
-
-//     //     // let items = Vec::<Box<BqsqlDocumentItem>>::new();
-//     //     let item = BqsqlDocumentItem {
-//     //         item_type: BqsqlDocumentItemType::Unknown,
-//     //         range: None,
-//     //         items: vec![],
-//     //     };
-
-//     //     let interpreter = BqsqlInterpreter {
-//     //         lines: Box::new(lines),
-//     //         tokens: Box::new(tokens),
-//     //         // lines: &lines,
-//     //         // tokens: &tokens,
-//     //         index: 0,
-//     //         // top_node: Box::new(&top_node),
-//     //         current_item: item,
-//     //     };
-
-//     //     Box::new(interpreter)
-//     // }
-//     // pub(crate) fn iterate<'a>(&'a mut self) -> &'a BqsqlInterpreter {
-//     //     let mut monitor_index = self.index;
-
-//     //     while self.tokens.len() > self.index {
-//     //         self.handle_query();
-
-//     //         if monitor_index == self.index {
-//     //             self.handle_unknown();
-//     //         } else {
-//     //             monitor_index = self.index;
-//     //         }
-
-//     //         self.next();
-//     //     }
-
-//     //     self
-//     // }
-//     // pub(crate) fn next<'a>(&'a mut self) -> &'a BqsqlInterpreter {
-//     //     self.index = self.index + 1;
-
-//     //     self
-//     // }
-//     // pub(crate) fn handle_unknown(&mut self) -> &BqsqlInterpreter {
-//     //     self.current_item.items.push(Box::new(BqsqlDocumentItem {
-//     //         item_type: super::BqsqlDocumentItemType::Unknown,
-//     //         range: Some(self.tokens[self.index]),
-//     //         items: vec![],
-//     //         parent: None,
-//     //     }));
-
-//     //     self.next()
-//     // }
-
-//     // /*
-//     // / Add node and make it main node, so that when items are pushed via `append_node_item`,
-//     // / these will be placed in the items of this new element
-//     // */
-//     // pub(crate) fn add_node_item<'a>(
-//     //     &'a mut self,
-//     //     item_type: BqsqlDocumentItemType,
-//     // ) -> &'a BqsqlInterpreter {
-//     //     let item = Box::new(BqsqlDocumentItem {
-//     //         item_type: item_type,
-//     //         range: None,
-//     //         items: vec![],
-//     //         parent: None, //Some(self.current_item),
-//     //     });
-
-//     //     self.current_item.items.push(item);
-
-//     //     // self.current_node = Box::new(&item);
-
-//     //     self
-//     // }
-
-//     // pub(crate) fn is_top_node(&self) -> bool {
-//     //     // self.current_node.parent.is_none()
-
-//     //     false
-//     // }
-//     // pub(crate) fn get_string_in_range(&self, index: usize) -> Option<&'_ str> {
-//     //     if self.tokens.len() > index {
-//     //         let range = &self.tokens[index];
-//     //         if self.lines[range[0]].len() >= range[2] {
-//     //             return Some(&self.lines[range[0]][range[1]..range[2]]);
-//     //         }
-//     //     }
-//     //     None
-//     // }
-//     // pub(crate) fn get_bqsql_document(&self) -> BqsqlDocument {
-//     //     BqsqlDocument { items: vec![] }
-//     // }
-// }

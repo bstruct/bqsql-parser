@@ -1,21 +1,29 @@
 #[derive(Debug)]
 pub(crate) enum BqsqlKeyword {
+    All,
     As,
-    With,
+    Distinct,
+    From,
     Recursive,
     Select,
-    From,
+    Struct,
+    Value,
     Where,
+    With,
 }
 impl BqsqlKeyword {
     fn as_str(&self) -> &'static str {
         match self {
             BqsqlKeyword::As => "AS",
-            BqsqlKeyword::With => "WITH",
+            BqsqlKeyword::All => "ALL",
+            BqsqlKeyword::Distinct => "DISTINCT",
+            BqsqlKeyword::From => "FROM",
             BqsqlKeyword::Recursive => "RECURSIVE",
             BqsqlKeyword::Select => "SELECT",
-            BqsqlKeyword::From => "FROM",
+            BqsqlKeyword::Struct => "STRUCT",
+            BqsqlKeyword::Value => "VALUE",
             BqsqlKeyword::Where => "WHERE",
+            BqsqlKeyword::With => "WITH",
         }
     }
 }

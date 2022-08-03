@@ -12,7 +12,7 @@ pub(crate) enum BqsqlKeyword {
     With,
 }
 impl BqsqlKeyword {
-    fn as_str(&self) -> &'static str {
+    pub(crate) fn as_str(&self) -> &'static str {
         match self {
             BqsqlKeyword::As => "AS",
             BqsqlKeyword::All => "ALL",

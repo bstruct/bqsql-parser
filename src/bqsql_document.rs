@@ -4,9 +4,11 @@ use self::bqsql_interpreter::BqsqlInterpreter;
 
 pub mod bqsql_interpreter;
 pub mod bqsql_interpreter_query;
+pub mod bqsql_operator;
+pub mod bqsql_delimiter;
 pub mod bqsql_keyword;
 pub mod parser;
-pub mod parser_test_select;
+pub mod bqsql_interpreter_query_select_test;
 pub mod token_parser;
 
 #[derive(Serialize, Clone)]

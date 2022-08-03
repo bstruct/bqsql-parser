@@ -27,21 +27,27 @@ impl BqsqlInterpreter<'_> {
         false
     }
 
-    pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
-            if string_in_range == keyword {
-                let item = BqsqlDocumentItem {
-                    item_type: BqsqlDocumentItemType::Keyword,
-                    range: Some(self.tokens[self.index]),
-                    items: vec![],
-                };
+    /*most generic verstion of the handle_
+    if return a BqsqlDocumentItem, moves the index by 1 */
+    pub(crate) fn handle_document_item(
+        &mut self,
+        item_type: BqsqlDocumentItemType,
+    ) -> Option<BqsqlDocumentItem> {
+        if self.is_in_range(self.index) {
+            let item = BqsqlDocumentItem {
+                item_type: item_type,
+                range: Some(self.tokens[self.index]),
+                items: vec![],
+            };
 
-                self.index += 1;
+            self.index += 1;
 
-                return Some(item);
-            }
+            return Some(item);
         }
         None
+    }
+    pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
+        self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str())
     }
 
     pub(crate) fn handle_string(
@@ -51,22 +57,31 @@ impl BqsqlInterpreter<'_> {
     ) -> Option<BqsqlDocumentItem> {
         if let Some(string_in_range) = self.get_string_in_range(self.index) {
             if string_in_range == comp {
-                let item = BqsqlDocumentItem {
-                    item_type: item_type,
-                    range: Some(self.tokens[self.index]),
-                    items: vec![],
-                };
-
-                self.index += 1;
-
-                return Some(item);
+                return self.handle_document_item(item_type);
             }
         }
         None
     }
 
+    pub(crate) fn handle_kunknown(&mut self) -> BqsqlDocumentItem {
+        let item = BqsqlDocumentItem {
+            item_type: BqsqlDocumentItemType::Unknown,
+            range: Some(self.tokens[self.index]),
+            items: vec![],
+        };
+
+        self.index += 1;
+
+        item
+    }
+
     pub(crate) fn is_in_range(&self, index: usize) -> bool {
         self.tokens.len() > index
+    }
+
+    pub(crate) fn is_number(&self) -> bool {
+        if let Some(string_in_range) = self.get_string_in_range(self.index) {}
+        false
     }
 
     pub(crate) fn get_string_in_range(&self, index: usize) -> Option<&'_ str> {
@@ -89,7 +104,7 @@ impl BqsqlInterpreter<'_> {
             }
 
             if monitor_index == self.index {
-                // self.handle_kunknown();
+                items.push(self.handle_kunknown());
             } else {
                 monitor_index = self.index;
             }

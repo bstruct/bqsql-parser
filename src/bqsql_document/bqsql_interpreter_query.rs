@@ -5,7 +5,9 @@ use super::{
 
 impl BqsqlInterpreter<'_> {
     pub(crate) fn handle_query(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(BqsqlKeyword::With) || self.is_keyword(BqsqlKeyword::Select) {
+        if self.is_keyword(self.index, BqsqlKeyword::With)
+            || self.is_keyword(self.index, BqsqlKeyword::Select)
+        {
             let document_item = BqsqlDocumentItem::new(
                 BqsqlDocumentItemType::Query,
                 vec![
@@ -21,7 +23,7 @@ impl BqsqlInterpreter<'_> {
     }
 
     fn handle_with(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(BqsqlKeyword::With) {
+        if self.is_keyword(self.index, BqsqlKeyword::With) {
             let mut items = Vec::from(vec![
                 self.handle_keyword(BqsqlKeyword::With),      //WITH
                 self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
@@ -48,10 +50,11 @@ impl BqsqlInterpreter<'_> {
     }
 
     fn handle_select(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(BqsqlKeyword::Select) {
+        if self.is_keyword(self.index, BqsqlKeyword::Select) {
+            let select_keywords = self.get_select_keywords();
             let items = [
-                self.get_select_keywords(), //SELECT ALL, DISTINCT, AS VALUE, AS STRUCT
-                self.get_select_list(),     //list of columns or calculated values
+                select_keywords.1,      //SELECT ALL, DISTINCT, AS VALUE, AS STRUCT
+                self.get_select_list(), //list of columns or calculated values
             ]
             .concat();
 
@@ -67,31 +70,32 @@ impl BqsqlInterpreter<'_> {
             //                         //OFFSET
             // ]));
 
-            return Some(BqsqlDocumentItem::new(
-                BqsqlDocumentItemType::QuerySelect,
-                items,
-            ));
+            return Some(BqsqlDocumentItem::new(select_keywords.0, items));
         }
         None
     }
 
-    fn get_select_keywords(&mut self) -> Vec<Option<BqsqlDocumentItem>> {
+    fn get_select_keywords(&mut self) -> (BqsqlDocumentItemType, Vec<Option<BqsqlDocumentItem>>) {
+        let mut document_type = BqsqlDocumentItemType::QuerySelect;
         let mut items = Vec::from(vec![self.handle_keyword(BqsqlKeyword::Select)]);
-        if self.is_keyword(BqsqlKeyword::All) {
+        if self.is_keyword(self.index, BqsqlKeyword::All) {
+            document_type = BqsqlDocumentItemType::QuerySelectAll;
             items.push(self.handle_keyword(BqsqlKeyword::All));
-        } else if self.is_keyword(BqsqlKeyword::Distinct) {
+        } else if self.is_keyword(self.index, BqsqlKeyword::Distinct) {
+            document_type = BqsqlDocumentItemType::QuerySelectDistinct;
             items.push(self.handle_keyword(BqsqlKeyword::Distinct));
-        } else if self.is_keyword(BqsqlKeyword::As) {
+        } else if self.is_keyword(self.index, BqsqlKeyword::As) {
             items.push(self.handle_keyword(BqsqlKeyword::As));
-            if self.is_keyword(BqsqlKeyword::Struct) {
+            if self.is_keyword(self.index, BqsqlKeyword::Struct) {
+                document_type = BqsqlDocumentItemType::QuerySelectAsStruct;
                 items.push(self.handle_keyword(BqsqlKeyword::Struct));
-            }
-            if self.is_keyword(BqsqlKeyword::Value) {
+            } else if self.is_keyword(self.index, BqsqlKeyword::Value) {
+                document_type = BqsqlDocumentItemType::QuerySelectAsValue;
                 items.push(self.handle_keyword(BqsqlKeyword::Value));
             }
         }
 
-        items
+        (document_type, items)
     }
 
     fn get_select_list(&mut self) -> Vec<Option<BqsqlDocumentItem>> {
@@ -105,52 +109,51 @@ impl BqsqlInterpreter<'_> {
         let mut count_open_parentheses: usize = 0;
 
         loop {
+            //line comment
             if self.is_line_comment() {
-                //
-                //line comment
-                //
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
-            } else if self.is_number() {
-                //
-                //number
-                //
-                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
-            } else if self.is_string(self.index) {
-                //
-                //string
-                //
-                item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
-            } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
-                //
+            }
+
+            
+
+            if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
                 //parentheses open
-                //
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
                 count_open_parentheses += 1;
             } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesClose) {
-                //
                 //parentheses close
-                //
+                if count_open_parentheses == 0 {
+                    break;
+                }
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
                 count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
-            } else if self.is_keyword(BqsqlKeyword::As) {
-                //
+                continue;
+            }else if self.is_number() {
+                //number
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
+            } else if self.is_string(self.index) {
+                //string
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
+            } else if self.is_keyword(self.index, BqsqlKeyword::As) {
                 //keyword AS
-                //
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
+            } else if self.is_keyword(self.index, BqsqlKeyword::Select) {
+                //keyword SELECT
+                item_list.push(self.handle_query());
+            } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
+                //comma
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
             } else if let Some(operators) = self.find_any_operator(self.index) {
-                //
                 //any operator
-                //
                 let mut len = operators.to_vec().len();
                 while len > 0 {
                     item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
                     len -= 1;
                 }
-            } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
-                //
-                //comma
-                //
-                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
+            } else if count_open_parentheses == 0 {
+                if !self.is_keyword(self.index, BqsqlKeyword::From) {
+                    item_list.push(self.handle_document_item(BqsqlDocumentItemType::Alias));
+                }
             }
 
             if monitor_index == self.index {
@@ -174,7 +177,7 @@ impl BqsqlInterpreter<'_> {
                 continue;
             }
 
-            if (!self.is_in_range(self.index)) || self.is_keyword(BqsqlKeyword::From) {
+            if (!self.is_in_range(self.index)) || self.is_keyword(self.index, BqsqlKeyword::From) {
                 break;
             }
         }
@@ -186,27 +189,11 @@ impl BqsqlInterpreter<'_> {
             )));
         }
 
-        // let _: bool = self.is_number();
-        // let _: bool = self.is_string();
-        // let _: bool = self.is_symbol();
-
-        //is number
-        //is token
-        //is string
-
-        //is AS
-        //is Alias
-        //is comma
-
-        //is open brackets
-
-        //is FROM or another keyword
-
         list
     }
 
     fn handle_from(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(BqsqlKeyword::From) {
+        if self.is_keyword(self.index, BqsqlKeyword::From) {
             todo!()
         }
         None
@@ -223,21 +210,21 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
-    fn handle_open_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
-        self.handle_string(
-            BqsqlDocumentItemType::ParenthesesOpen,
-            BqsqlDelimiter::ParenthesesOpen.as_str(),
-        )
-    }
+    // fn handle_open_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
+    //     self.handle_string(
+    //         BqsqlDocumentItemType::ParenthesesOpen,
+    //         BqsqlDelimiter::ParenthesesOpen.as_str(),
+    //     )
+    // }
 
-    fn handle_close_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
-        self.handle_string(
-            BqsqlDocumentItemType::ParenthesesClose,
-            BqsqlDelimiter::ParenthesesClose.as_str(),
-        )
-    }
+    // fn handle_close_parentheses(&mut self) -> Option<BqsqlDocumentItem> {
+    //     self.handle_string(
+    //         BqsqlDocumentItemType::ParenthesesClose,
+    //         BqsqlDelimiter::ParenthesesClose.as_str(),
+    //     )
+    // }
 
-    fn handle_comma(&mut self) -> Option<BqsqlDocumentItem> {
-        self.handle_string(BqsqlDocumentItemType::Comma, BqsqlDelimiter::Comma.as_str())
-    }
+    // fn handle_comma(&mut self) -> Option<BqsqlDocumentItem> {
+    //     self.handle_string(BqsqlDocumentItemType::Comma, BqsqlDelimiter::Comma.as_str())
+    // }
 }

@@ -25,8 +25,8 @@ impl BqsqlInterpreter<'_> {
         }
     }
 
-    pub(crate) fn is_keyword(&self, keyword: BqsqlKeyword) -> bool {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
+    pub(crate) fn is_keyword(&self, index: usize, keyword: BqsqlKeyword) -> bool {
+        if let Some(string_in_range) = self.get_string_in_range(index) {
             return string_in_range == keyword;
         }
         false
@@ -105,7 +105,9 @@ impl BqsqlInterpreter<'_> {
 
     pub(crate) fn is_delimiter(&self, index: usize, delimiter: BqsqlDelimiter) -> bool {
         if let Some(string_in_range) = self.get_string_in_range(index) {
-            return string_in_range == delimiter;
+            if string_in_range == delimiter {
+                return string_in_range == delimiter;
+            }
         }
         false
     }
@@ -191,9 +193,12 @@ impl BqsqlInterpreter<'_> {
 
         while self.tokens.len() > self.index {
             if self.is_line_comment() {
-                items.push(self.handle_document_item(BqsqlDocumentItemType::LineComment).unwrap());
+                items.push(
+                    self.handle_document_item(BqsqlDocumentItemType::LineComment)
+                        .unwrap(),
+                );
             }
-            
+
             if let Some(query) = self.handle_query() {
                 items.push(query);
             }

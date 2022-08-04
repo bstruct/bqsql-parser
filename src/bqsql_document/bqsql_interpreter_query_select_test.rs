@@ -11,21 +11,36 @@ fn empty_string() {
 fn comment_only() {
     let document = BqsqlDocument::parse("--super comment");
 
-    assert_eq!(0, document.items.len());
+    assert_eq!(1, document.items.len());
+
+    let comment = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::LineComment, comment.item_type);
+    assert_eq!(Some([0, 0, 15]), comment.range);
+    assert_eq!(0, comment.items.len());
 }
 
 #[test]
 fn comment_with_select_in_text() {
     let document = BqsqlDocument::parse("--super comment that includes a query SELECT 2+2");
 
-    assert_eq!(0, document.items.len());
+    assert_eq!(1, document.items.len());
+
+    let comment = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::LineComment, comment.item_type);
+    assert_eq!(Some([0, 0, 48]), comment.range);
+    assert_eq!(0, comment.items.len());
 }
 
 #[test]
 fn space_comment_only() {
     let document = BqsqlDocument::parse("    --super comment");
 
-    assert_eq!(0, document.items.len());
+    assert_eq!(1, document.items.len());
+
+    let comment = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::LineComment, comment.item_type);
+    assert_eq!(Some([0, 4, 19]), comment.range);
+    assert_eq!(0, comment.items.len());
 }
 
 #[test]
@@ -542,7 +557,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- --- --- Keyword
     //--- --- --- --- --- --- QueryCteName
     //--- --- --- --- ParenthesesClose
-    
+
     //--- --- QuerySelect
     //--- --- --- Keyword
     //--- --- --- QuerySelectListItem

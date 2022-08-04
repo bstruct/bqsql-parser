@@ -26,6 +26,7 @@ pub struct BqsqlDocumentItem {
 #[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BqsqlDocumentItemType {
     Unknown,
+    LineComment,
     Keyword,
     KeywordAs,
 
@@ -61,6 +62,12 @@ pub enum BqsqlDocumentItemType {
     QuerySelectColumnName,
 
     QueryFrom,
+}
+
+impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
+    fn eq(&self, other: &&BqsqlDocumentItemType) -> bool {
+        self.eq(other)
+    }
 }
 
 impl BqsqlDocument {

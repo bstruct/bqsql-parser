@@ -49,25 +49,28 @@ impl BqsqlInterpreter<'_> {
 
     fn handle_select(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_keyword(BqsqlKeyword::Select) {
-            let mut items = [
+            let items = [
                 self.get_select_keywords(), //SELECT ALL, DISTINCT, AS VALUE, AS STRUCT
                 self.get_select_list(),     //list of columns or calculated values
             ]
             .concat();
 
-            items.append(&mut Vec::from(vec![
-                self.handle_from(), //FROM
-                                    //WHERE
-                                    //GROUP BY | ROLLUP
-                                    //HAVING
-                                    //QUALIFY
-                                    //WINDOW
-                                    //ORDER BY
-                                    //LIMIT
-                                    //OFFSET
-            ]));
+            // items.append(&mut Vec::from(vec![
+            //     self.handle_from(), //FROM
+            //                         //WHERE
+            //                         //GROUP BY | ROLLUP
+            //                         //HAVING
+            //                         //QUALIFY
+            //                         //WINDOW
+            //                         //ORDER BY
+            //                         //LIMIT
+            //                         //OFFSET
+            // ]));
 
-            return Some(BqsqlDocumentItem::new(BqsqlDocumentItemType::Query, items));
+            return Some(BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::QuerySelect,
+                items,
+            ));
         }
         None
     }
@@ -99,20 +102,55 @@ impl BqsqlInterpreter<'_> {
 
         let mut monitor_index = self.index;
 
-        loop {
-            if self.is_number() {
-                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
-                // } else if self.is_operator() {
-                //     item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
-                // } else if self.is_string() {
-                //     item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
-                // } else if self.is_keyword(BqsqlKeyword::As) {
-                //     item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
-                // }
-                //....
+        let mut count_open_parentheses: usize = 0;
 
-                // else if self.is_delimiter(BqsqlDelimiter::Comma) {
-                //     item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
+        loop {
+            if self.is_line_comment() {
+                //
+                //line comment
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
+            } else if self.is_number() {
+                //
+                //number
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
+            } else if self.is_string(self.index) {
+                //
+                //string
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
+            } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
+                //
+                //parentheses open
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+                count_open_parentheses += 1;
+            } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesClose) {
+                //
+                //parentheses close
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
+                count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
+            } else if self.is_keyword(BqsqlKeyword::As) {
+                //
+                //keyword AS
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
+            } else if let Some(operators) = self.find_any_operator(self.index) {
+                //
+                //any operator
+                //
+                let mut len = operators.to_vec().len();
+                while len > 0 {
+                    item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
+                    len -= 1;
+                }
+            } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
+                //
+                //comma
+                //
+                item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
             }
 
             if monitor_index == self.index {
@@ -121,8 +159,11 @@ impl BqsqlInterpreter<'_> {
                 monitor_index = self.index;
             }
 
-            if item_list.len() > 0 && item_list.last().is_some()
-            // && self.is_delimiter(BqsqlDelimiter::Comma)
+            if count_open_parentheses == 0
+                && item_list.len() > 0
+                && item_list.last().is_some()
+                // .is_some_and(|i| true) // is_some_and is not complete at the moment
+                && self.is_delimiter(self.index - 1, BqsqlDelimiter::Comma)
             {
                 list.push(Some(BqsqlDocumentItem::new(
                     BqsqlDocumentItemType::QuerySelectListItem,
@@ -136,8 +177,6 @@ impl BqsqlInterpreter<'_> {
             if (!self.is_in_range(self.index)) || self.is_keyword(BqsqlKeyword::From) {
                 break;
             }
-
-            break;
         }
 
         if item_list.len() > 0 {

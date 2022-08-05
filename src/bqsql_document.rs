@@ -2,13 +2,16 @@ use serde::Serialize;
 
 use self::bqsql_interpreter::BqsqlInterpreter;
 
-pub mod bqsql_interpreter;
-pub mod bqsql_interpreter_query;
-pub mod bqsql_operator;
 pub mod bqsql_delimiter;
-pub mod bqsql_keyword;
-pub mod parser;
+pub mod bqsql_interpreter_query_from_test;
+pub mod bqsql_interpreter_query_full_test;
 pub mod bqsql_interpreter_query_select_test;
+pub mod bqsql_interpreter_query;
+pub mod bqsql_interpreter;
+pub mod bqsql_keyword;
+pub mod bqsql_operator;
+pub mod bqsql_query_structure;
+pub mod parser;
 pub mod token_parser;
 
 #[derive(Serialize, Clone)]

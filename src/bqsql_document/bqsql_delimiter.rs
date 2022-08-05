@@ -1,9 +1,10 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum BqsqlDelimiter {
     ParenthesesOpen,
     ParenthesesClose,
     Dot,
     Comma,
+    Semicolon,
 }
 impl BqsqlDelimiter {
     pub(crate) fn as_str(&self) -> &'static str {
@@ -12,6 +13,7 @@ impl BqsqlDelimiter {
             BqsqlDelimiter::ParenthesesClose => ")",
             BqsqlDelimiter::Dot => ".",
             BqsqlDelimiter::Comma => ",",
+            BqsqlDelimiter::Semicolon => ";",
         }
     }
 }
@@ -33,8 +35,10 @@ fn compare_all() {
     assert_eq!(BqsqlDelimiter::ParenthesesClose, ")");
     assert_eq!(BqsqlDelimiter::Dot, ".");
     assert_eq!(BqsqlDelimiter::Comma, ",");
+    assert_eq!(BqsqlDelimiter::Semicolon, ";");
     assert_eq!("(", BqsqlDelimiter::ParenthesesOpen);
-    assert_eq!("(", BqsqlDelimiter::ParenthesesClose);
+    assert_eq!(")", BqsqlDelimiter::ParenthesesClose);
     assert_eq!(".", BqsqlDelimiter::Dot);
     assert_eq!(",", BqsqlDelimiter::Comma);
+    assert_eq!(";", BqsqlDelimiter::Semicolon);
 }

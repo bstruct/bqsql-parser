@@ -60,7 +60,20 @@ impl BqsqlInterpreter<'_> {
     }
 
     pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
-        self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str())
+        if self.is_keyword(self.index, keyword) {
+            return self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str());
+        }
+        None
+    }
+
+    pub(crate) fn handle_delimiter(
+        &mut self,
+        delimiter: BqsqlDelimiter,
+    ) -> Option<BqsqlDocumentItem> {
+        if self.is_delimiter(self.index, delimiter) {
+            return self.handle_string(BqsqlDocumentItemType::Keyword, delimiter.as_str());
+        }
+        None
     }
 
     pub(crate) fn handle_string(
@@ -76,16 +89,20 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
-    pub(crate) fn handle_kunknown(&mut self) -> BqsqlDocumentItem {
-        let item = BqsqlDocumentItem {
-            item_type: BqsqlDocumentItemType::Unknown,
-            range: Some(self.tokens[self.index]),
-            items: vec![],
-        };
+    pub(crate) fn handle_unknown(&mut self) -> Option<BqsqlDocumentItem> {
+        if self.is_in_range(self.index) {
+            let item = BqsqlDocumentItem {
+                item_type: BqsqlDocumentItemType::Unknown,
+                range: Some(self.tokens[self.index]),
+                items: vec![],
+            };
 
-        self.index += 1;
+            self.index += 1;
 
-        item
+            return Some(item);
+        }
+
+        None
     }
 
     pub(crate) fn is_in_range(&self, index: usize) -> bool {
@@ -204,7 +221,9 @@ impl BqsqlInterpreter<'_> {
             }
 
             if monitor_index == self.index {
-                items.push(self.handle_kunknown());
+                if let Some(unknown) = self.handle_unknown() {
+                    items.push(unknown);
+                }
             } else {
                 monitor_index = self.index;
             }

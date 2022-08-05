@@ -9,7 +9,7 @@ impl BqsqlDelimiter {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
             BqsqlDelimiter::ParenthesesOpen => "(",
-            BqsqlDelimiter::ParenthesesClose => "(",
+            BqsqlDelimiter::ParenthesesClose => ")",
             BqsqlDelimiter::Dot => ".",
             BqsqlDelimiter::Comma => ",",
         }
@@ -30,11 +30,11 @@ impl PartialEq<BqsqlDelimiter> for &str {
 #[test]
 fn compare_all() {
     assert_eq!(BqsqlDelimiter::ParenthesesOpen, "(");
-    assert_eq!(BqsqlDelimiter::ParenthesesClose, "(");
+    assert_eq!(BqsqlDelimiter::ParenthesesClose, ")");
     assert_eq!(BqsqlDelimiter::Dot, ".");
     assert_eq!(BqsqlDelimiter::Comma, ",");
     assert_eq!("(", BqsqlDelimiter::ParenthesesOpen);
-    assert_eq!(")", BqsqlDelimiter::ParenthesesClose);
+    assert_eq!("(", BqsqlDelimiter::ParenthesesClose);
     assert_eq!(".", BqsqlDelimiter::Dot);
     assert_eq!(",", BqsqlDelimiter::Comma);
 }

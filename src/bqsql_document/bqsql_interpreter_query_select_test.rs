@@ -310,7 +310,7 @@ fn select_select_as_struct_query() {
         query_list_item_0.item_type
     );
     assert_eq!(None, query_list_item_0.range);
-    // assert_eq!(5, query_list_item_0.items.len());
+    assert_eq!(5, query_list_item_0.items.len());
 
     //--- --- --- PARENTHESES_OPEN
     assert_eq!(
@@ -430,7 +430,7 @@ fn select_select_as_struct_query() {
     assert_eq!(Some([0, 38, 46]), list_item_1.items[0].range);
     assert_eq!(0, list_item_1.items[0].items.len());
 
-    //--- --- --- --- --- --- AS_ALIAS
+    //--- --- --- --- --- --- KeywordAs
     assert_eq!(
         BqsqlDocumentItemType::KeywordAs,
         list_item_1.items[1].item_type

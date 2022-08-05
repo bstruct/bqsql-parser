@@ -4,10 +4,13 @@ use super::{
 };
 
 impl BqsqlInterpreter<'_> {
-    pub(crate) fn handle_query(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(self.index, BqsqlKeyword::With)
+    pub(crate) fn is_query(&self) -> bool {
+        self.is_keyword(self.index, BqsqlKeyword::With)
             || self.is_keyword(self.index, BqsqlKeyword::Select)
-        {
+    }
+
+    pub(crate) fn handle_query(&mut self) -> Option<BqsqlDocumentItem> {
+        if self.is_query() {
             let document_item = BqsqlDocumentItem::new(
                 BqsqlDocumentItemType::Query,
                 vec![
@@ -114,7 +117,10 @@ impl BqsqlInterpreter<'_> {
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
             }
 
-            
+            //query
+            if self.is_query() {
+                item_list.push(self.handle_query());
+            }
 
             if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
                 //parentheses open
@@ -128,7 +134,7 @@ impl BqsqlInterpreter<'_> {
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
                 count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
                 continue;
-            }else if self.is_number() {
+            } else if self.is_number() {
                 //number
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
             } else if self.is_string(self.index) {
@@ -137,9 +143,6 @@ impl BqsqlInterpreter<'_> {
             } else if self.is_keyword(self.index, BqsqlKeyword::As) {
                 //keyword AS
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
-            } else if self.is_keyword(self.index, BqsqlKeyword::Select) {
-                //keyword SELECT
-                item_list.push(self.handle_query());
             } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
                 //comma
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));

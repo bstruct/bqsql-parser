@@ -21,6 +21,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- QueryCteName
     //--- --- KeywordAs
     //--- --- ParenthesesOpen
+    //--- --- Query
     //--- --- --- QuerySelect
     //--- --- ---  ---Keyword
     //--- --- --- --- QuerySelectListItem
@@ -123,20 +124,51 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //--- --- Keyword
     assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[0].item_type);
-    assert_eq!(None, query_with.items[0].range);
+    assert_eq!(Some([0, 0, 4]), query_with.items[0].range);
     assert_eq!(0, query_with.items[0].items.len());
 
     //--- --- QueryCteName
+    assert_eq!(BqsqlDocumentItemType::QueryCteName, query_with.items[1].item_type);
+    assert_eq!(Some([0, 5, 7]), query_with.items[1].range);
+    assert_eq!(0, query_with.items[1].items.len());
+
     //--- --- KeywordAs
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[2].item_type);
+    assert_eq!(Some([0, 8, 10]), query_with.items[2].range);
+    assert_eq!(0, query_with.items[2].items.len());
+
     //--- --- ParenthesesOpen
+    assert_eq!(BqsqlDocumentItemType::ParenthesesOpen, query_with.items[3].item_type);
+    assert_eq!(Some([0, 11, 12]), query_with.items[3].range);
+    assert_eq!(0, query_with.items[3].items.len());
+
+    //--- --- Query
+    assert_eq!(BqsqlDocumentItemType::Query, query_with.items[4].item_type);
+    assert_eq!(None, query_with.items[4].range);
+    assert_eq!(2, query_with.items[4].items.len());
+
+    let query_1_items = &query_with.items[4].items;
     //--- --- --- QuerySelect
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_1_items[0].item_type);
+    assert_eq!(None, query_1_items[0].range);
+    assert_eq!(2, query_1_items[0].items.len());
+
     //--- --- ---  ---Keyword
     //--- --- --- --- QuerySelectListItem
     //--- --- --- --- --- QuerySelectColumnName
+
     //--- --- --- QueryFrom
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_1_items[1].item_type);
+    assert_eq!(None, query_1_items[1].range);
+    assert_eq!(2, query_1_items[1].items.len());
+
     //--- --- --- --- Keyword
     //--- --- --- --- QueryCteName
+
     //--- --- ParenthesesClose
+    assert_eq!(BqsqlDocumentItemType::ParenthesesClose, query_with.items[5].item_type);
+    assert_eq!(Some([0, 39, 40]), query_with.items[5].range);
+    assert_eq!(0, query_with.items[5].items.len());
 
     //--- QuerySelect
     //--- --- Keyword

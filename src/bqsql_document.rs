@@ -43,6 +43,7 @@ pub enum BqsqlDocumentItemType {
     ParenthesesClose,
     Comma,
     Semicolon,
+    Dot,
 
     Alias,
 

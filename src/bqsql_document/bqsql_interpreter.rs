@@ -3,7 +3,7 @@ use regex::Regex;
 
 use super::{
     bqsql_delimiter::BqsqlDelimiter, bqsql_keyword::BqsqlKeyword, bqsql_operator::BqsqlOperator,
-    BqsqlDocumentItem, BqsqlDocumentItemType,
+    bqsql_query_structure::BqsqlQueryStructure, BqsqlDocumentItem, BqsqlDocumentItemType,
 };
 use crate::bqsql_document::token_parser;
 
@@ -32,8 +32,8 @@ impl BqsqlInterpreter<'_> {
         false
     }
 
-    pub(crate) fn is_line_comment(&self) -> bool {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
+    pub(crate) fn is_line_comment(&self, index: usize) -> bool {
+        if let Some(string_in_range) = self.get_string_in_range(index) {
             return string_in_range.starts_with("--") || string_in_range.starts_with("#");
         }
         false
@@ -71,7 +71,8 @@ impl BqsqlInterpreter<'_> {
         delimiter: BqsqlDelimiter,
     ) -> Option<BqsqlDocumentItem> {
         if self.is_delimiter(self.index, delimiter) {
-            return self.handle_string(BqsqlDocumentItemType::Keyword, delimiter.as_str());
+            let item_type: BqsqlDocumentItemType = delimiter.get_item_type();
+            return self.handle_string(item_type, delimiter.as_str());
         }
         None
     }
@@ -209,7 +210,7 @@ impl BqsqlInterpreter<'_> {
         let mut items: Vec<BqsqlDocumentItem> = Vec::new();
 
         while self.tokens.len() > self.index {
-            if self.is_line_comment() {
+            if self.is_line_comment(self.index) {
                 items.push(
                     self.handle_document_item(BqsqlDocumentItemType::LineComment)
                         .unwrap(),
@@ -233,6 +234,153 @@ impl BqsqlInterpreter<'_> {
 
         items
     }
+}
+
+/*
+try to match a sequence of keywords
+the "relevant" part of the name, means that line comments in the middle will be ignored and match will still be possible
+ */
+pub(crate) fn get_relevant_keywords_match(
+    interpreter: &BqsqlInterpreter,
+    keywords_to_match: &Vec<Vec<BqsqlKeyword>>,
+) -> Option<Vec<BqsqlKeyword>> {
+    for keywords in keywords_to_match {
+        let mut matched = 0;
+        let mut index = interpreter.index;
+
+        while interpreter.is_in_range(index) && matched < keywords.len() {
+            let keyword = keywords[matched];
+
+            if interpreter.is_line_comment(index) {
+                index += 1;
+            } else {
+                if interpreter.is_keyword(index, keyword) {
+                    index += 1;
+                    matched += 1;
+                } else {
+                    break;
+                }
+            }
+            if matched >= keywords.len() {
+                return Some(keywords.to_owned());
+            }
+        }
+    }
+
+    None
+}
+
+#[test]
+fn get_relevant_keywords_match_select_short() {
+    let interpreter = BqsqlInterpreter::new("SELECT 1");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(1, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+}
+
+#[test]
+fn get_relevant_keywords_match_select() {
+    let interpreter = BqsqlInterpreter::new("SELECT 1,2,3");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(1, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+}
+
+#[test]
+fn get_relevant_keywords_match_select_all() {
+    let interpreter = BqsqlInterpreter::new("SELECT ALL 1,2,3");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(2, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+    assert_eq!(BqsqlKeyword::All, keywords[1]);
+}
+
+#[test]
+fn get_relevant_keywords_match_select_distinct() {
+    let interpreter = BqsqlInterpreter::new("SELECT\n DISTINCT 1,2,3");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(2, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+    assert_eq!(BqsqlKeyword::Distinct, keywords[1]);
+}
+
+#[test]
+fn get_relevant_keywords_match_select_as_struct() {
+    let interpreter = BqsqlInterpreter::new("SELECT AS STRUCT 1,2,3");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(3, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+    assert_eq!(BqsqlKeyword::As, keywords[1]);
+    assert_eq!(BqsqlKeyword::Struct, keywords[2]);
+}
+
+#[test]
+fn get_relevant_keywords_match_select_as_value() {
+    let interpreter = BqsqlInterpreter::new("SELECT AS\n--jsafkljsafd\n VALUE 1,2,3");
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(3, keywords.len());
+    assert_eq!(BqsqlKeyword::Select, keywords[0]);
+    assert_eq!(BqsqlKeyword::As, keywords[1]);
+    assert_eq!(BqsqlKeyword::Value, keywords[2]);
+}
+
+#[test]
+fn get_relevant_keywords_match_from() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT AS\n--jsafkljsafd\n VALUE 1,2,3 FROM a");
+    interpreter.index = 9;
+    let keywords_to_match = BqsqlQueryStructure::From.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(1, keywords.len());
+    assert_eq!(BqsqlKeyword::From, keywords[0]);
+}
+
+#[test]
+fn get_relevant_keywords_match_where() {
+    let mut interpreter =
+        BqsqlInterpreter::new("SELECT AS\n#jsa fkl jsafd\n VALUE 1,2,3 FROM a WHERE 1=1");
+    interpreter.index = 11;
+    let keywords_to_match = BqsqlQueryStructure::Where.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_some());
+    let keywords = keywords_option.unwrap();
+    assert_eq!(1, keywords.len());
+    assert_eq!(BqsqlKeyword::Where, keywords[0]);
 }
 
 impl BqsqlDocumentItem {

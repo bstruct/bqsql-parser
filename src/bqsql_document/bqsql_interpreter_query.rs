@@ -1,7 +1,9 @@
 use super::{
-    bqsql_delimiter::BqsqlDelimiter, bqsql_interpreter::BqsqlInterpreter,
-    bqsql_keyword::BqsqlKeyword, bqsql_query_structure::BqsqlQueryStructure, BqsqlDocumentItem,
-    BqsqlDocumentItemType,
+    bqsql_delimiter::BqsqlDelimiter,
+    bqsql_interpreter::{self, get_relevant_keywords_match, BqsqlInterpreter},
+    bqsql_keyword::BqsqlKeyword,
+    bqsql_query_structure::BqsqlQueryStructure,
+    BqsqlDocumentItem, BqsqlDocumentItemType,
 };
 
 impl BqsqlInterpreter<'_> {
@@ -17,15 +19,16 @@ impl BqsqlInterpreter<'_> {
                 vec![
                     self.handle_with(),   //expected possible "WITH"
                     self.handle_select(), //expected mandatory "SELECT" statement
-                    self.handle_from(),   //expected possible "FROM" statement
-                                          //WHERE
-                                          //GROUP BY | ROLLUP
-                                          //HAVING
-                                          //QUALIFY
-                                          //WINDOW
-                                          //ORDER BY
-                                          //LIMIT
-                                          //OFFSET
+                    handle_query_stage(self, BqsqlQueryStructure::From),
+                    handle_query_stage(self, BqsqlQueryStructure::Where),
+                    handle_query_stage(self, BqsqlQueryStructure::GroupBy),
+                    handle_query_stage(self, BqsqlQueryStructure::Rollup),
+                    handle_query_stage(self, BqsqlQueryStructure::Having),
+                    handle_query_stage(self, BqsqlQueryStructure::Qualify),
+                    handle_query_stage(self, BqsqlQueryStructure::Window),
+                    handle_query_stage(self, BqsqlQueryStructure::OrderBy),
+                    handle_query_stage(self, BqsqlQueryStructure::Limit),
+                    handle_query_stage(self, BqsqlQueryStructure::Offset),
                 ],
             );
 
@@ -65,7 +68,10 @@ impl BqsqlInterpreter<'_> {
                 }
             }
 
-            return Some(BqsqlDocumentItem::new(BqsqlDocumentItemType::Query, items));
+            return Some(BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::QueryWith,
+                items,
+            ));
         }
         None
     }
@@ -119,7 +125,7 @@ impl BqsqlInterpreter<'_> {
 
         loop {
             //line comment
-            if self.is_line_comment() {
+            if self.is_line_comment(self.index) {
                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
             }
 
@@ -203,21 +209,6 @@ impl BqsqlInterpreter<'_> {
         list
     }
 
-    fn handle_from(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(self.index, BqsqlKeyword::From) {
-            let items = vec![
-                self.handle_keyword(BqsqlKeyword::From),
-                self.handle_unknown(),
-            ];
-
-            return Some(BqsqlDocumentItem::new(
-                BqsqlDocumentItemType::QueryFrom,
-                items,
-            ));
-        }
-        None
-    }
-
     fn handle_cte_name(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_in_range(self.index) {
             let item = BqsqlDocumentItem {
@@ -234,18 +225,123 @@ impl BqsqlInterpreter<'_> {
     }
 }
 
-fn continue_loop_query(interpreter: &BqsqlInterpreter, query_stage: BqsqlQueryStructure) -> bool {
+fn handle_query_stage(
+    interpreter: &mut BqsqlInterpreter,
+    query_stage: BqsqlQueryStructure,
+) -> Option<BqsqlDocumentItem> {
+    //get keywords associated with this query stage to
+    // 1) confirm that they are found
+    // 2) if they are found, they are added as keywords to the document_item items
+    let keywords_to_match = &query_stage.get_keywords();
+    if let Some(keywords_match) =
+        bqsql_interpreter::get_relevant_keywords_match(interpreter, keywords_to_match)
+    {
+        let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+
+        //add keywords
+        let mut matched = 0;
+        while matched < keywords_match.len() {
+            if interpreter.is_line_comment(interpreter.index) {
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+            } else {
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Keyword));
+                matched += 1;
+            }
+        }
+
+        //loop tokens inside the expected block of the query
+        let mut count_open_parentheses: usize = 0;
+        let subsequent_query_structure = &query_stage.get_subsequent_query_structure();
+        while continue_loop_query(interpreter, subsequent_query_structure) {
+            if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
+                //parentheses open
+                items
+                    .push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+                count_open_parentheses += 1;
+                continue;
+            }
+            if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+                //parentheses close
+                if count_open_parentheses == 0 {
+                    break;
+                }
+                items.push(
+                    interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose),
+                );
+                count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
+                continue;
+            }
+
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Unknown));
+        }
+
+        return Some(BqsqlDocumentItem::new(
+            BqsqlDocumentItemType::QueryFrom,
+            items,
+        ));
+    }
+    None
+}
+
+fn continue_loop_query(
+    interpreter: &BqsqlInterpreter,
+    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+) -> bool {
     if interpreter.is_in_range(interpreter.index) {
-        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Comma) {
+        //;
+        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Semicolon) {
             return false;
         }
 
-        match query_stage {
-            BqsqlQueryStructure::With => {}
-            _ => todo!(),
-        }
-        if interpreter.is_keyword(interpreter.index, BqsqlKeyword::From) {}
+        // match query_stage {
+        //     // BqsqlQueryStructure::With => {}
+        //     // BqsqlQueryStructure::Select => {}
+        //     BqsqlQueryStructure::From => {}
+        //     _ => todo!(),
+        // }
+
+        //are any of the subsequent keywords of the query found?
+        return !subsequent_query_structure
+            .iter()
+            .map(|i| i.get_keywords())
+            .any(|i| get_relevant_keywords_match(&interpreter, &i).is_some());
     }
 
     false
+}
+
+#[test]
+fn continue_loop_query_from_where_not_continue() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t WHERE 1=1");
+    interpreter.index = 4;
+    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
+
+    assert!(!continue_loop_query(
+        &interpreter,
+        &query_stage.get_subsequent_query_structure()
+    ));
+}
+
+#[test]
+fn continue_loop_query_from_where_continue() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table WHERE 1=1");
+    interpreter.index = 4;
+    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
+
+    assert!(continue_loop_query(
+        &interpreter,
+        &query_stage.get_subsequent_query_structure()
+    ));
+}
+
+#[test]
+fn continue_loop_query_from_end() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table");
+    interpreter.index = 6;
+    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
+
+    assert!(!continue_loop_query(
+        &interpreter,
+        &query_stage.get_subsequent_query_structure()
+    ));
 }

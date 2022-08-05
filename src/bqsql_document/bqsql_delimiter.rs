@@ -1,3 +1,5 @@
+use super::BqsqlDocumentItemType;
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BqsqlDelimiter {
     ParenthesesOpen,
@@ -14,6 +16,16 @@ impl BqsqlDelimiter {
             BqsqlDelimiter::Dot => ".",
             BqsqlDelimiter::Comma => ",",
             BqsqlDelimiter::Semicolon => ";",
+        }
+    }
+
+    pub(crate) fn get_item_type(&self) -> BqsqlDocumentItemType {
+        match self {
+            BqsqlDelimiter::ParenthesesOpen => BqsqlDocumentItemType::ParenthesesOpen,
+            BqsqlDelimiter::ParenthesesClose => BqsqlDocumentItemType::ParenthesesClose,
+            BqsqlDelimiter::Dot => BqsqlDocumentItemType::Dot,
+            BqsqlDelimiter::Comma => BqsqlDocumentItemType::Comma,
+            BqsqlDelimiter::Semicolon => BqsqlDocumentItemType::Semicolon,
         }
     }
 }

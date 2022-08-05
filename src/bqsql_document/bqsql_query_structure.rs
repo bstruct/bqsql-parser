@@ -19,6 +19,8 @@
 // [ QUALIFY bool_expression ]
 // [ WINDOW window_clause ]
 
+use super::bqsql_keyword::BqsqlKeyword;
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BqsqlQueryStructure {
     With = 1,
@@ -33,4 +35,77 @@ pub(crate) enum BqsqlQueryStructure {
     OrderBy = 10,
     Limit = 11,
     Offset = 12,
+}
+
+impl BqsqlQueryStructure {
+    pub(crate) fn get_keywords(&self) -> Vec<Vec<BqsqlKeyword>> {
+        match self {
+            BqsqlQueryStructure::With => {
+                return vec![
+                    vec![BqsqlKeyword::With, BqsqlKeyword::Recursive],
+                    vec![BqsqlKeyword::With],
+                ];
+            }
+            BqsqlQueryStructure::Select => {
+                return vec![
+                    vec![BqsqlKeyword::Select, BqsqlKeyword::As, BqsqlKeyword::Struct],
+                    vec![BqsqlKeyword::Select, BqsqlKeyword::As, BqsqlKeyword::Value],
+                    vec![BqsqlKeyword::Select, BqsqlKeyword::Distinct],
+                    vec![BqsqlKeyword::Select, BqsqlKeyword::All],
+                    vec![BqsqlKeyword::Select],
+                ];
+            }
+            BqsqlQueryStructure::From => {
+                return vec![vec![BqsqlKeyword::From]];
+            }
+            BqsqlQueryStructure::Where => {
+                return vec![vec![BqsqlKeyword::Where]];
+            }
+            BqsqlQueryStructure::GroupBy => {
+                return vec![vec![BqsqlKeyword::Group, BqsqlKeyword::By]];
+            }
+            BqsqlQueryStructure::Rollup => {
+                return vec![vec![BqsqlKeyword::Rollup]];
+            }
+            BqsqlQueryStructure::Having => {
+                return vec![vec![BqsqlKeyword::Having]];
+            }
+            BqsqlQueryStructure::Qualify => {
+                return vec![vec![BqsqlKeyword::Qualify]];
+            }
+            BqsqlQueryStructure::Window => {
+                return vec![vec![BqsqlKeyword::Window]];
+            }
+            BqsqlQueryStructure::OrderBy => {
+                return vec![vec![BqsqlKeyword::Order, BqsqlKeyword::By]];
+            }
+            BqsqlQueryStructure::Limit => {
+                return vec![vec![BqsqlKeyword::Limit]];
+            }
+            BqsqlQueryStructure::Offset => {
+                return vec![vec![BqsqlKeyword::Offset]];
+            }
+        }
+    }
+
+    pub(crate) fn get_all() -> Vec<BqsqlQueryStructure> {
+        vec![
+            BqsqlQueryStructure::With,
+            BqsqlQueryStructure::Select,
+            BqsqlQueryStructure::From,
+            BqsqlQueryStructure::Where,
+            BqsqlQueryStructure::GroupBy,
+            BqsqlQueryStructure::Rollup,
+            BqsqlQueryStructure::Having,
+            BqsqlQueryStructure::Qualify,
+            BqsqlQueryStructure::Window,
+            BqsqlQueryStructure::OrderBy,
+            BqsqlQueryStructure::Limit,
+            BqsqlQueryStructure::Offset,
+        ]
+    }
+
+    pub(crate) fn get_subsequent_query_structure(&self) -> Vec<BqsqlQueryStructure> {
+        BqsqlQueryStructure::get_all()[(*self as usize)..].to_vec()
+    }
 }

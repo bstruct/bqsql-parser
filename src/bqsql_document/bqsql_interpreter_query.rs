@@ -17,8 +17,10 @@ impl BqsqlInterpreter<'_> {
             let document_item = BqsqlDocumentItem::new(
                 BqsqlDocumentItemType::Query,
                 vec![
-                    self.handle_with(),   //expected possible "WITH"
-                    self.handle_select(), //expected mandatory "SELECT" statement
+                    // self.handle_with(),   //expected possible "WITH"
+                    // self.handle_select(), //expected mandatory "SELECT" statement
+                    handle_query_stage(self, BqsqlQueryStructure::With),
+                    handle_query_stage(self, BqsqlQueryStructure::Select),
                     handle_query_stage(self, BqsqlQueryStructure::From),
                     handle_query_stage(self, BqsqlQueryStructure::Where),
                     handle_query_stage(self, BqsqlQueryStructure::GroupBy),
@@ -252,15 +254,19 @@ fn handle_query_stage(
         //loop tokens inside the expected block of the query
         let mut count_open_parentheses: usize = 0;
         let subsequent_query_structure = &query_stage.get_subsequent_query_structure();
-        while continue_loop_query(interpreter, subsequent_query_structure) {
+        while continue_loop_query(
+            interpreter,
+            subsequent_query_structure,
+            count_open_parentheses,
+        ) {
             if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
                 //parentheses open
                 items
                     .push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
                 count_open_parentheses += 1;
                 continue;
-            }
-            if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+            } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose)
+            {
                 //parentheses close
                 if count_open_parentheses == 0 {
                     break;
@@ -270,13 +276,28 @@ fn handle_query_stage(
                 );
                 count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
                 continue;
+            } else if interpreter.is_query() {
+                items.push(interpreter.handle_query());
+                continue;
+            } else if interpreter.is_number() {
+                //number
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
+                continue;
+            } else if interpreter.is_string(interpreter.index) {
+                //string
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
+                continue;
+            } else if interpreter.is_line_comment(interpreter.index) {
+                //line comment
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+                continue;
             }
 
             items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Unknown));
         }
 
         return Some(BqsqlDocumentItem::new(
-            BqsqlDocumentItemType::QueryFrom,
+            query_stage.get_document_item_type(),
             items,
         ));
     }
@@ -286,11 +307,16 @@ fn handle_query_stage(
 fn continue_loop_query(
     interpreter: &BqsqlInterpreter,
     subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+    count_open_parentheses: usize,
 ) -> bool {
     if interpreter.is_in_range(interpreter.index) {
         //;
         if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Semicolon) {
             return false;
+        }
+
+        if count_open_parentheses > 0 {
+            return true;
         }
 
         // match query_stage {
@@ -318,7 +344,8 @@ fn continue_loop_query_from_where_not_continue() {
 
     assert!(!continue_loop_query(
         &interpreter,
-        &query_stage.get_subsequent_query_structure()
+        &query_stage.get_subsequent_query_structure(),
+        0
     ));
 }
 
@@ -330,7 +357,8 @@ fn continue_loop_query_from_where_continue() {
 
     assert!(continue_loop_query(
         &interpreter,
-        &query_stage.get_subsequent_query_structure()
+        &query_stage.get_subsequent_query_structure(),
+        0
     ));
 }
 
@@ -342,6 +370,7 @@ fn continue_loop_query_from_end() {
 
     assert!(!continue_loop_query(
         &interpreter,
-        &query_stage.get_subsequent_query_structure()
+        &query_stage.get_subsequent_query_structure(),
+        0
     ));
 }

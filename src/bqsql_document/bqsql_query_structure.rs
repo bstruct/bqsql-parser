@@ -19,7 +19,7 @@
 // [ QUALIFY bool_expression ]
 // [ WINDOW window_clause ]
 
-use super::bqsql_keyword::BqsqlKeyword;
+use super::{bqsql_keyword::BqsqlKeyword, BqsqlDocumentItemType};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BqsqlQueryStructure {
@@ -108,4 +108,46 @@ impl BqsqlQueryStructure {
     pub(crate) fn get_subsequent_query_structure(&self) -> Vec<BqsqlQueryStructure> {
         BqsqlQueryStructure::get_all()[(*self as usize)..].to_vec()
     }
+
+    pub(crate) fn get_document_item_type(&self) -> super::BqsqlDocumentItemType {
+        match self {
+            BqsqlQueryStructure::With => {
+                return BqsqlDocumentItemType::QueryWith;
+            }
+            BqsqlQueryStructure::Select => {
+                return BqsqlDocumentItemType::QuerySelect;
+            }
+            BqsqlQueryStructure::From => {
+                return BqsqlDocumentItemType::QueryFrom;
+            }
+            BqsqlQueryStructure::Where => {
+                return BqsqlDocumentItemType::QueryWhere;
+            }
+            BqsqlQueryStructure::GroupBy => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Rollup => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Having => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Qualify => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Window => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::OrderBy => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Limit => {
+                return BqsqlDocumentItemType::With;
+            }
+            BqsqlQueryStructure::Offset => {
+                return BqsqlDocumentItemType::With;
+            }
+        }
+    }
+
 }

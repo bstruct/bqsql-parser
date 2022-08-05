@@ -106,7 +106,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- Semicolon
     //
 
-    assert_eq!(1, document.items.len());
+    // assert_eq!(1, document.items.len());
 
     //
     //Query
@@ -120,7 +120,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     let query_with = &query.items[0];
     assert_eq!(BqsqlDocumentItemType::QueryWith, query_with.item_type);
     assert_eq!(None, query_with.range);
-    // assert_eq!(4, query_with.items.len());
+    assert_eq!(4, query_with.items.len());
 
     //--- --- Keyword
     assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[0].item_type);

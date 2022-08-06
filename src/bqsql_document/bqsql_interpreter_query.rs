@@ -1,6 +1,6 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
-    bqsql_interpreter::{self, get_relevant_keywords_match, BqsqlInterpreter},
+    bqsql_interpreter::{self, get_relevant_keywords_match, BqsqlInterpreter, handle_semicolon},
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType,
@@ -31,6 +31,7 @@ impl BqsqlInterpreter<'_> {
                     handle_query_stage(self, BqsqlQueryStructure::OrderBy),
                     handle_query_stage(self, BqsqlQueryStructure::Limit),
                     handle_query_stage(self, BqsqlQueryStructure::Offset),
+                    handle_semicolon(self),
                 ],
             );
 

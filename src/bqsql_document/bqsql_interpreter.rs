@@ -59,36 +59,36 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
-    pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
-        if self.is_keyword(self.index, keyword) {
-            return self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str());
-        }
-        None
-    }
+    // pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
+    //     if self.is_keyword(self.index, keyword) {
+    //         return self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str());
+    //     }
+    //     None
+    // }
 
-    pub(crate) fn handle_delimiter(
-        &mut self,
-        delimiter: BqsqlDelimiter,
-    ) -> Option<BqsqlDocumentItem> {
-        if self.is_delimiter(self.index, delimiter) {
-            let item_type: BqsqlDocumentItemType = delimiter.get_item_type();
-            return self.handle_string(item_type, delimiter.as_str());
-        }
-        None
-    }
+    // pub(crate) fn handle_delimiter(
+    //     &mut self,
+    //     delimiter: BqsqlDelimiter,
+    // ) -> Option<BqsqlDocumentItem> {
+    //     if self.is_delimiter(self.index, delimiter) {
+    //         let item_type: BqsqlDocumentItemType = delimiter.get_item_type();
+    //         return self.handle_string(item_type, delimiter.as_str());
+    //     }
+    //     None
+    // }
 
-    pub(crate) fn handle_string(
-        &mut self,
-        item_type: BqsqlDocumentItemType,
-        comp: &str,
-    ) -> Option<BqsqlDocumentItem> {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
-            if string_in_range == comp {
-                return self.handle_document_item(item_type);
-            }
-        }
-        None
-    }
+    // pub(crate) fn handle_string(
+    //     &mut self,
+    //     item_type: BqsqlDocumentItemType,
+    //     comp: &str,
+    // ) -> Option<BqsqlDocumentItem> {
+    //     if let Some(string_in_range) = self.get_string_in_range(self.index) {
+    //         if string_in_range == comp {
+    //             return self.handle_document_item(item_type);
+    //         }
+    //     }
+    //     None
+    // }
 
     pub(crate) fn handle_unknown(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_in_range(self.index) {
@@ -147,63 +147,63 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
-    pub(crate) fn find_any_operator(&self, index: usize) -> Option<BqsqlOperator> {
-        let all = &BqsqlOperator::get_all();
+    // pub(crate) fn find_any_operator(&self, index: usize) -> Option<BqsqlOperator> {
+    //     let all = &BqsqlOperator::get_all();
 
-        if self.is_in_range(index + 2) {
-            let values3 = vec![
-                self.get_string_in_range(index),
-                self.get_string_in_range(index + 1),
-                self.get_string_in_range(index + 2),
-            ]
-            .iter()
-            .map(|i| i.unwrap().to_string())
-            .collect::<Vec<String>>();
-            let mut op3 = all
-                .iter()
-                .map(|i| (i, i.to_vec()))
-                .filter(|i| i.1.len() == 3);
+    //     if self.is_in_range(index + 2) {
+    //         let values3 = vec![
+    //             self.get_string_in_range(index),
+    //             self.get_string_in_range(index + 1),
+    //             self.get_string_in_range(index + 2),
+    //         ]
+    //         .iter()
+    //         .map(|i| i.unwrap().to_string())
+    //         .collect::<Vec<String>>();
+    //         let mut op3 = all
+    //             .iter()
+    //             .map(|i| (i, i.to_vec()))
+    //             .filter(|i| i.1.len() == 3);
 
-            if let Some(m) = op3.find(|i| i.1.to_vec() == values3) {
-                return Some(m.0.to_owned());
-            }
-        }
+    //         if let Some(m) = op3.find(|i| i.1.to_vec() == values3) {
+    //             return Some(m.0.to_owned());
+    //         }
+    //     }
 
-        if self.is_in_range(index + 1) {
-            let values2 = vec![
-                self.get_string_in_range(index),
-                self.get_string_in_range(index + 1),
-            ]
-            .iter()
-            .map(|i| i.unwrap().to_string())
-            .collect::<Vec<String>>();
-            let mut op2 = all
-                .iter()
-                .map(|i| (i, i.to_vec()))
-                .filter(|i| i.1.len() == 2);
+    //     if self.is_in_range(index + 1) {
+    //         let values2 = vec![
+    //             self.get_string_in_range(index),
+    //             self.get_string_in_range(index + 1),
+    //         ]
+    //         .iter()
+    //         .map(|i| i.unwrap().to_string())
+    //         .collect::<Vec<String>>();
+    //         let mut op2 = all
+    //             .iter()
+    //             .map(|i| (i, i.to_vec()))
+    //             .filter(|i| i.1.len() == 2);
 
-            if let Some(m) = op2.find(|i| i.1.to_vec() == values2) {
-                return Some(m.0.to_owned());
-            }
-        }
+    //         if let Some(m) = op2.find(|i| i.1.to_vec() == values2) {
+    //             return Some(m.0.to_owned());
+    //         }
+    //     }
 
-        if self.is_in_range(index) {
-            let values1 = vec![self.get_string_in_range(index)]
-                .iter()
-                .map(|i| i.unwrap().to_string())
-                .collect::<Vec<String>>();
-            let mut op1 = all
-                .iter()
-                .map(|i| (i, i.to_vec()))
-                .filter(|i| i.1.len() == 1);
+    //     if self.is_in_range(index) {
+    //         let values1 = vec![self.get_string_in_range(index)]
+    //             .iter()
+    //             .map(|i| i.unwrap().to_string())
+    //             .collect::<Vec<String>>();
+    //         let mut op1 = all
+    //             .iter()
+    //             .map(|i| (i, i.to_vec()))
+    //             .filter(|i| i.1.len() == 1);
 
-            if let Some(m) = op1.find(|i| i.1.to_vec() == values1) {
-                return Some(m.0.to_owned());
-            }
-        }
+    //         if let Some(m) = op1.find(|i| i.1.to_vec() == values1) {
+    //             return Some(m.0.to_owned());
+    //         }
+    //     }
 
-        None
-    }
+    //     None
+    // }
 
     pub(crate) fn collect(&mut self) -> Vec<BqsqlDocumentItem> {
         let mut monitor_index = self.index;
@@ -408,6 +408,17 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
 
     assert!(keywords_option.is_none());
+}
+
+pub(crate) fn handle_semicolon(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    //do not accept comments in the beginning
+    if let Some(string_in_range) = interpreter.get_string_in_range(interpreter.index) {
+        if string_in_range == ";" {
+            return interpreter.handle_document_item(BqsqlDocumentItemType::Semicolon);
+        }
+    }
+
+    None
 }
 
 impl BqsqlDocumentItem {

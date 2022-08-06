@@ -107,7 +107,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- Semicolon
     //
 
-    // assert_eq!(1, document.items.len());
+    assert_eq!(1, document.items.len());
 
     //
     //Query
@@ -115,7 +115,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     let query = &document.items[0];
     assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
     assert_eq!(None, query.range);
-    // assert_eq!(4, query.items.len());
+    assert_eq!(4, query.items.len());
 
     //--- QueryWith
     let query_with = &query.items[0];
@@ -124,7 +124,10 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(7, query_with.items.len());
 
     //--- --- Keyword
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[0].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_with.items[0].item_type
+    );
     assert_eq!(Some([0, 0, 4]), query_with.items[0].range);
     assert_eq!(0, query_with.items[0].items.len());
 
@@ -139,7 +142,10 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(0, query_with.items[2].items.len());
 
     //--- --- ParenthesesOpen
-    assert_eq!(BqsqlDocumentItemType::ParenthesesOpen, query_with.items[3].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesOpen,
+        query_with.items[3].item_type
+    );
     assert_eq!(Some([0, 11, 12]), query_with.items[3].range);
     assert_eq!(0, query_with.items[3].items.len());
 
@@ -150,7 +156,10 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     let query_1_items = &query_with.items[4].items;
     //--- --- --- QuerySelect
-    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_1_items[0].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelect,
+        query_1_items[0].item_type
+    );
     assert_eq!(None, query_1_items[0].range);
     assert_eq!(2, query_1_items[0].items.len());
 
@@ -167,12 +176,18 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- QueryCteName
 
     //--- --- ParenthesesClose
-    assert_eq!(BqsqlDocumentItemType::ParenthesesClose, query_with.items[5].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesClose,
+        query_with.items[5].item_type
+    );
     assert_eq!(Some([0, 39, 40]), query_with.items[5].range);
     assert_eq!(0, query_with.items[5].items.len());
 
     //--- --- LineComment
-    assert_eq!(BqsqlDocumentItemType::LineComment, query_with.items[6].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::LineComment,
+        query_with.items[6].item_type
+    );
     assert_eq!(Some([0, 41, 50]), query_with.items[6].range);
     assert_eq!(0, query_with.items[6].items.len());
 
@@ -248,6 +263,11 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- QueryCteName
 
     //--- --- ParenthesesClose
+    
     //--- Semicolon
+    assert_eq!(BqsqlDocumentItemType::Semicolon, query.items[3].item_type);
+    assert_eq!(Some([7, 17, 18]), query.items[3].range);
+    assert_eq!(0, query.items[3].items.len());
+
     //
 }

@@ -132,12 +132,18 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(0, query_with.items[0].items.len());
 
     //--- --- QueryCteName
-    // assert_eq!(BqsqlDocumentItemType::QueryCteName, query_with.items[1].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::QueryCteName,
+        query_with.items[1].item_type
+    );
     assert_eq!(Some([0, 5, 7]), query_with.items[1].range);
     assert_eq!(0, query_with.items[1].items.len());
 
     //--- --- KeywordAs
-    // assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[2].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::KeywordAs,
+        query_with.items[2].item_type
+    );
     assert_eq!(Some([0, 8, 10]), query_with.items[2].range);
     assert_eq!(0, query_with.items[2].items.len());
 
@@ -163,8 +169,23 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(None, query_1_items[0].range);
     assert_eq!(2, query_1_items[0].items.len());
 
-    //--- --- ---  ---Keyword
+    let query_1_items_0_items = &query_1_items[0].items;
+    //--- --- --- --- Keyword
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_1_items_0_items[0].item_type
+    );
+    assert_eq!(Some([0, 12, 18]), query_1_items_0_items[0].range);
+    assert_eq!(0, query_1_items_0_items[0].items.len());
+
     //--- --- --- --- QuerySelectListItem
+    // assert_eq!(
+    //     BqsqlDocumentItemType::QuerySelectListItem,
+    //     query_1_items_0_items[1].item_type
+    // );
+    // assert_eq!(None, query_1_items_0_items[1].range);
+    // assert_eq!(1, query_1_items_0_items[1].items.len());
+
     //--- --- --- --- --- QuerySelectColumnName
 
     //--- --- --- QueryFrom
@@ -192,6 +213,11 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(0, query_with.items[6].items.len());
 
     //--- QuerySelect
+    let query_select = &query.items[1];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(2, query_select.items.len());
+
     //--- --- Keyword
     //--- --- QuerySelectListItem
     //--- --- --- QuerySelectStar
@@ -263,7 +289,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- QueryCteName
 
     //--- --- ParenthesesClose
-    
+
     //--- Semicolon
     assert_eq!(BqsqlDocumentItemType::Semicolon, query.items[3].item_type);
     assert_eq!(Some([7, 17, 18]), query.items[3].range);

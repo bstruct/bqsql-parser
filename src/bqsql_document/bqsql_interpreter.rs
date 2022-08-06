@@ -110,17 +110,6 @@ impl BqsqlInterpreter<'_> {
         self.tokens.len() > index
     }
 
-    pub(crate) fn is_number(&self) -> bool {
-        if let Some(string_in_range) = self.get_string_in_range(self.index) {
-            lazy_static! {
-                static ref RE: Regex = Regex::new(r"\d+|\d*\.{1}\d*").unwrap();
-            }
-
-            return RE.is_match(string_in_range);
-        }
-        false
-    }
-
     pub(crate) fn is_delimiter(&self, index: usize, delimiter: BqsqlDelimiter) -> bool {
         if let Some(string_in_range) = self.get_string_in_range(index) {
             if string_in_range == delimiter {
@@ -234,6 +223,57 @@ impl BqsqlInterpreter<'_> {
 
         items
     }
+}
+
+pub(crate) fn is_number(interpreter: &BqsqlInterpreter) -> bool {
+    if let Some(string_in_range) = interpreter.get_string_in_range(interpreter.index) {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"^\d+$|^\d*\.{1}\d*$").unwrap();
+        }
+
+        return RE.is_match(string_in_range);
+    }
+    false
+}
+
+#[test]
+fn is_number_q1(){
+    let mut interpreter = BqsqlInterpreter::new("SELECT q1");
+    interpreter.index=1;
+    assert_eq!(&2, &interpreter.tokens.len());
+    assert!(!is_number(&interpreter));
+}
+
+#[test]
+fn is_number_1(){
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1");
+    interpreter.index=1;
+    assert_eq!(&2, &interpreter.tokens.len());
+    assert!(is_number(&interpreter));
+}
+
+#[test]
+fn is_number_1_112(){
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1.112");
+    interpreter.index=1;
+    assert_eq!(&2, &interpreter.tokens.len());
+    assert!(is_number(&interpreter));
+}
+
+#[test]
+fn is_number_1_(){
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1.");
+    interpreter.index=1;
+    assert_eq!(&2, &interpreter.tokens.len());
+    assert!(is_number(&interpreter));
+}
+
+#[test]
+fn is_number_dot_112(){
+    let mut interpreter = BqsqlInterpreter::new("SELECT .112");
+    interpreter.index=1;
+    assert_eq!(&2, &interpreter.tokens.len());
+    assert!(is_number(&interpreter));
 }
 
 /*

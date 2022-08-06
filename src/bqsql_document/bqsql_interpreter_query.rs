@@ -1,24 +1,17 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
-    bqsql_interpreter::{self, get_relevant_keywords_match, handle_semicolon, BqsqlInterpreter},
+    bqsql_interpreter::{self, get_relevant_keywords_match, handle_semicolon, BqsqlInterpreter, is_number},
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType,
 };
 
 impl BqsqlInterpreter<'_> {
-    pub(crate) fn is_query(&self) -> bool {
-        self.is_keyword(self.index, BqsqlKeyword::With)
-            || self.is_keyword(self.index, BqsqlKeyword::Select)
-    }
-
     pub(crate) fn handle_query(&mut self) -> Option<BqsqlDocumentItem> {
-        if self.is_query() {
+        if is_query(self) {
             let document_item = BqsqlDocumentItem::new(
                 BqsqlDocumentItemType::Query,
                 vec![
-                    // self.handle_with(),   //expected possible "WITH"
-                    // self.handle_select(), //expected mandatory "SELECT" statement
                     handle_query_stage(self, BqsqlQueryStructure::With),
                     handle_query_stage(self, BqsqlQueryStructure::Select),
                     handle_query_stage(self, BqsqlQueryStructure::From),
@@ -37,200 +30,177 @@ impl BqsqlInterpreter<'_> {
 
             return Some(document_item);
         }
-
         None
     }
+}
 
-    // fn handle_with(&mut self) -> Option<BqsqlDocumentItem> {
-    //     if self.is_keyword(self.index, BqsqlKeyword::With) {
-    //         let mut items = Vec::from(vec![
-    //             self.handle_keyword(BqsqlKeyword::With),      //WITH
-    //             self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
-    //         ]);
+// fn handle_with(&mut self) -> Option<BqsqlDocumentItem> {
+//     if self.is_keyword(self.index, BqsqlKeyword::With) {
+//         let mut items = Vec::from(vec![
+//             self.handle_keyword(BqsqlKeyword::With),      //WITH
+//             self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
+//         ]);
 
-    //         let mut monitor_index = self.index;
+//         let mut monitor_index = self.index;
 
-    //         loop {
-    //             items.append(&mut Vec::from(vec![
-    //                 self.handle_cte_name(), //common table expression (CTE)
-    //                 self.handle_keyword(BqsqlKeyword::As),
-    //                 self.handle_delimiter(BqsqlDelimiter::ParenthesesOpen),
-    //                 self.handle_query(), //expected mandatory select statement
-    //                 self.handle_delimiter(BqsqlDelimiter::ParenthesesClose),
-    //                 self.handle_delimiter(BqsqlDelimiter::Comma),
-    //             ]));
+//         loop {
+//             items.append(&mut Vec::from(vec![
+//                 self.handle_cte_name(), //common table expression (CTE)
+//                 self.handle_keyword(BqsqlKeyword::As),
+//                 self.handle_delimiter(BqsqlDelimiter::ParenthesesOpen),
+//                 self.handle_query(), //expected mandatory select statement
+//                 self.handle_delimiter(BqsqlDelimiter::ParenthesesClose),
+//                 self.handle_delimiter(BqsqlDelimiter::Comma),
+//             ]));
 
-    //             if monitor_index == self.index {
-    //                 break;
-    //             } else {
-    //                 monitor_index = self.index;
-    //             }
+//             if monitor_index == self.index {
+//                 break;
+//             } else {
+//                 monitor_index = self.index;
+//             }
 
-    //             if items.last().is_none() {
-    //                 break;
-    //             }
-    //         }
+//             if items.last().is_none() {
+//                 break;
+//             }
+//         }
 
-    //         return Some(BqsqlDocumentItem::new(
-    //             BqsqlDocumentItemType::QueryWith,
-    //             items,
-    //         ));
-    //     }
-    //     None
-    // }
+//         return Some(BqsqlDocumentItem::new(
+//             BqsqlDocumentItemType::QueryWith,
+//             items,
+//         ));
+//     }
+//     None
+// }
 
-    // fn handle_select(&mut self) -> Option<BqsqlDocumentItem> {
-    //     if self.is_keyword(self.index, BqsqlKeyword::Select) {
-    //         let select_keywords = self.get_select_keywords();
-    //         let items = [
-    //             select_keywords.1,      //SELECT ALL, DISTINCT, AS VALUE, AS STRUCT
-    //             self.get_select_list(), //list of columns or calculated values
-    //         ]
-    //         .concat();
+// fn get_select_list(&mut self) -> Vec<Option<BqsqlDocumentItem>> {
+//     //list to return with the found BqsqlDocumentItemType::QuerySelectListItem
+//     let mut list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+//     //gather all elements inside the current BqsqlDocumentItemType::QuerySelectListItem
+//     let mut item_list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
 
-    //         return Some(BqsqlDocumentItem::new(select_keywords.0, items));
-    //     }
-    //     None
-    // }
+//     let mut monitor_index = self.index;
 
-    // fn get_select_keywords(&mut self) -> (BqsqlDocumentItemType, Vec<Option<BqsqlDocumentItem>>) {
-    //     let mut document_type = BqsqlDocumentItemType::QuerySelect;
-    //     let mut items = Vec::from(vec![self.handle_keyword(BqsqlKeyword::Select)]);
-    //     if self.is_keyword(self.index, BqsqlKeyword::All) {
-    //         document_type = BqsqlDocumentItemType::QuerySelectAll;
-    //         items.push(self.handle_keyword(BqsqlKeyword::All));
-    //     } else if self.is_keyword(self.index, BqsqlKeyword::Distinct) {
-    //         document_type = BqsqlDocumentItemType::QuerySelectDistinct;
-    //         items.push(self.handle_keyword(BqsqlKeyword::Distinct));
-    //     } else if self.is_keyword(self.index, BqsqlKeyword::As) {
-    //         items.push(self.handle_keyword(BqsqlKeyword::As));
-    //         if self.is_keyword(self.index, BqsqlKeyword::Struct) {
-    //             document_type = BqsqlDocumentItemType::QuerySelectAsStruct;
-    //             items.push(self.handle_keyword(BqsqlKeyword::Struct));
-    //         } else if self.is_keyword(self.index, BqsqlKeyword::Value) {
-    //             document_type = BqsqlDocumentItemType::QuerySelectAsValue;
-    //             items.push(self.handle_keyword(BqsqlKeyword::Value));
-    //         }
-    //     }
+//     let mut count_open_parentheses: usize = 0;
 
-    //     (document_type, items)
-    // }
+//     loop {
+//         //line comment
+//         if self.is_line_comment(self.index) {
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
+//         }
 
-    // fn get_select_list(&mut self) -> Vec<Option<BqsqlDocumentItem>> {
-    //     //list to return with the found BqsqlDocumentItemType::QuerySelectListItem
-    //     let mut list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
-    //     //gather all elements inside the current BqsqlDocumentItemType::QuerySelectListItem
-    //     let mut item_list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+//         //query
+//         if self.is_query() {
+//             item_list.push(self.handle_query());
+//         }
 
-    //     let mut monitor_index = self.index;
+//         if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
+//             //parentheses open
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+//             count_open_parentheses += 1;
+//         } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesClose) {
+//             //parentheses close
+//             if count_open_parentheses == 0 {
+//                 break;
+//             }
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
+//             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
+//             continue;
+//         } else if self.is_number() {
+//             //number
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
+//         } else if self.is_string(self.index) {
+//             //string
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
+//         } else if self.is_keyword(self.index, BqsqlKeyword::As) {
+//             //keyword AS
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
+//         } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
+//             //comma
+//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
+//         } else if let Some(operators) = self.find_any_operator(self.index) {
+//             //any operator
+//             let mut len = operators.to_vec().len();
+//             while len > 0 {
+//                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
+//                 len -= 1;
+//             }
+//         } else if count_open_parentheses == 0 {
+//             if !self.is_keyword(self.index, BqsqlKeyword::From) {
+//                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Alias));
+//             }
+//         } else {
+//             item_list.push(self.handle_unknown());
+//         }
 
-    //     let mut count_open_parentheses: usize = 0;
+//         if monitor_index == self.index {
+//             break;
+//         } else {
+//             monitor_index = self.index;
+//         }
 
-    //     loop {
-    //         //line comment
-    //         if self.is_line_comment(self.index) {
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
-    //         }
+//         if count_open_parentheses == 0
+//             && item_list.len() > 0
+//             && item_list.last().is_some()
+//             // .is_some_and(|i| true) // is_some_and is not complete at the moment
+//             && self.is_delimiter(self.index - 1, BqsqlDelimiter::Comma)
+//         {
+//             list.push(Some(BqsqlDocumentItem::new(
+//                 BqsqlDocumentItemType::QuerySelectListItem,
+//                 item_list,
+//             )));
 
-    //         //query
-    //         if self.is_query() {
-    //             item_list.push(self.handle_query());
-    //         }
+//             item_list = Vec::new();
+//             continue;
+//         }
 
-    //         if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
-    //             //parentheses open
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
-    //             count_open_parentheses += 1;
-    //         } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesClose) {
-    //             //parentheses close
-    //             if count_open_parentheses == 0 {
-    //                 break;
-    //             }
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
-    //             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
-    //             continue;
-    //         } else if self.is_number() {
-    //             //number
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
-    //         } else if self.is_string(self.index) {
-    //             //string
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
-    //         } else if self.is_keyword(self.index, BqsqlKeyword::As) {
-    //             //keyword AS
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
-    //         } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
-    //             //comma
-    //             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
-    //         } else if let Some(operators) = self.find_any_operator(self.index) {
-    //             //any operator
-    //             let mut len = operators.to_vec().len();
-    //             while len > 0 {
-    //                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
-    //                 len -= 1;
-    //             }
-    //         } else if count_open_parentheses == 0 {
-    //             if !self.is_keyword(self.index, BqsqlKeyword::From) {
-    //                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Alias));
-    //             }
-    //         } else {
-    //             item_list.push(self.handle_unknown());
-    //         }
+//         if (!self.is_in_range(self.index)) || self.is_keyword(self.index, BqsqlKeyword::From) {
+//             break;
+//         }
+//     }
 
-    //         if monitor_index == self.index {
-    //             break;
-    //         } else {
-    //             monitor_index = self.index;
-    //         }
+//     if item_list.len() > 0 {
+//         list.push(Some(BqsqlDocumentItem::new(
+//             BqsqlDocumentItemType::QuerySelectListItem,
+//             item_list,
+//         )));
+//     }
 
-    //         if count_open_parentheses == 0
-    //             && item_list.len() > 0
-    //             && item_list.last().is_some()
-    //             // .is_some_and(|i| true) // is_some_and is not complete at the moment
-    //             && self.is_delimiter(self.index - 1, BqsqlDelimiter::Comma)
-    //         {
-    //             list.push(Some(BqsqlDocumentItem::new(
-    //                 BqsqlDocumentItemType::QuerySelectListItem,
-    //                 item_list,
-    //             )));
+//     list
+// }
 
-    //             item_list = Vec::new();
-    //             continue;
-    //         }
-
-    //         if (!self.is_in_range(self.index)) || self.is_keyword(self.index, BqsqlKeyword::From) {
-    //             break;
-    //         }
-    //     }
-
-    //     if item_list.len() > 0 {
-    //         list.push(Some(BqsqlDocumentItem::new(
-    //             BqsqlDocumentItemType::QuerySelectListItem,
-    //             item_list,
-    //         )));
-    //     }
-
-    //     list
-    // }
-
-    // fn handle_cte_name(&mut self) -> Option<BqsqlDocumentItem> {
-    //     if self.is_in_range(self.index) {
-    //         let item = BqsqlDocumentItem {
-    //             item_type: BqsqlDocumentItemType::QueryCteName,
-    //             range: Some(self.tokens[self.index]),
-    //             items: vec![],
-    //         };
-
-    //         self.index += 1;
-
-    //         return Some(item);
-    //     }
-    //     None
-    // }
+fn is_query(interpreter: &BqsqlInterpreter) -> bool {
+    interpreter.is_keyword(interpreter.index, BqsqlKeyword::With)
+        || interpreter.is_keyword(interpreter.index, BqsqlKeyword::Select)
 }
 
 fn handle_query_stage(
     interpreter: &mut BqsqlInterpreter,
     query_stage: BqsqlQueryStructure,
+) -> Option<BqsqlDocumentItem> {
+    match query_stage {
+        BqsqlQueryStructure::With => {
+            return handle_query_stage_default(
+                interpreter,
+                query_stage,
+                document_item_handler_with,
+            );
+        }
+        // BqsqlQueryStructure::Select => {},
+        _ => {
+            return handle_query_stage_default(
+                interpreter,
+                query_stage,
+                document_item_handler_unknown,
+            );
+        }
+    };
+}
+
+fn handle_query_stage_default(
+    interpreter: &mut BqsqlInterpreter,
+    query_stage: BqsqlQueryStructure,
+    //https://doc.rust-lang.org/book/ch19-05-advanced-functions-and-closures.html
+    document_item_handler: fn(&mut BqsqlInterpreter) -> Option<BqsqlDocumentItem>,
 ) -> Option<BqsqlDocumentItem> {
     //get keywords associated with this query stage to
     // 1) confirm that they are found
@@ -254,15 +224,13 @@ fn handle_query_stage(
 
         let subsequent_query_structure = &query_stage.get_subsequent_query_structure();
 
-        //https://doc.rust-lang.org/book/ch19-05-advanced-functions-and-closures.html
-        match query_stage {
-            // BqsqlQueryStructure::With => {}
-            // BqsqlQueryStructure::Select => {}
-            _ => {
-                let new_items = &mut default_loop_query(interpreter, subsequent_query_structure);
-                items.append(new_items);
-            }
-        };
+        //get items
+        let new_items = &mut loop_query_default(
+            interpreter,
+            subsequent_query_structure,
+            document_item_handler,
+        );
+        items.append(new_items);
 
         return Some(BqsqlDocumentItem::new(
             query_stage.get_document_item_type(),
@@ -270,6 +238,77 @@ fn handle_query_stage(
         ));
     }
     None
+}
+
+fn loop_query_default(
+    interpreter: &mut BqsqlInterpreter,
+    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+    document_item_handler: fn(&mut BqsqlInterpreter) -> Option<BqsqlDocumentItem>,
+) -> Vec<Option<BqsqlDocumentItem>> {
+    let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+
+    //loop tokens inside the expected block of the query
+    let mut count_open_parentheses: usize = 0;
+    while continue_loop_query(
+        interpreter,
+        subsequent_query_structure,
+        count_open_parentheses,
+    ) {
+        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
+            //parentheses open
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+            count_open_parentheses += 1;
+            continue;
+        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+            //parentheses close
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
+            count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
+            continue;
+        }  else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Comma) {
+            //comma
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Comma));
+            continue;
+        } else if is_query(interpreter) {
+            items.push(interpreter.handle_query());
+            continue;
+        } else if is_number(interpreter) {
+            //number
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
+            continue;
+        } else if interpreter.is_string(interpreter.index) {
+            //string
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
+            continue;
+        } else if interpreter.is_line_comment(interpreter.index) {
+            //line comment
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+            continue;
+        }
+
+        items.push(document_item_handler(interpreter));
+    }
+
+    items
+}
+
+fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
+}
+
+fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::With)
+        || interpreter.is_delimiter(interpreter.index - 1, BqsqlDelimiter::Comma)
+    {
+        return interpreter.handle_document_item(BqsqlDocumentItemType::QueryCteName);
+    }
+    if interpreter.is_keyword(interpreter.index, BqsqlKeyword::As) {
+        return interpreter.handle_document_item(BqsqlDocumentItemType::KeywordAs);
+    }
+    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::As) {
+        return interpreter.handle_document_item(BqsqlDocumentItemType::Alias);
+    }
+
+    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
 }
 
 fn continue_loop_query(
@@ -302,52 +341,6 @@ fn continue_loop_query(
     }
 
     false
-}
-
-fn default_loop_query(
-    interpreter: &mut BqsqlInterpreter,
-    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
-) -> Vec<Option<BqsqlDocumentItem>> {
-    let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
-
-    //loop tokens inside the expected block of the query
-    let mut count_open_parentheses: usize = 0;
-    while continue_loop_query(
-        interpreter,
-        subsequent_query_structure,
-        count_open_parentheses,
-    ) {
-        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
-            //parentheses open
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
-            count_open_parentheses += 1;
-            continue;
-        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
-            //parentheses close
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
-            count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
-            continue;
-        } else if interpreter.is_query() {
-            items.push(interpreter.handle_query());
-            continue;
-        } else if interpreter.is_number() {
-            //number
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
-            continue;
-        } else if interpreter.is_string(interpreter.index) {
-            //string
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
-            continue;
-        } else if interpreter.is_line_comment(interpreter.index) {
-            //line comment
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
-            continue;
-        }
-
-        items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Unknown));
-    }
-
-    items
 }
 
 #[test]

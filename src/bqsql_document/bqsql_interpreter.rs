@@ -239,11 +239,17 @@ impl BqsqlInterpreter<'_> {
 /*
 try to match a sequence of keywords
 the "relevant" part of the name, means that line comments in the middle will be ignored and match will still be possible
+comments in the beginning will not match
  */
 pub(crate) fn get_relevant_keywords_match(
     interpreter: &BqsqlInterpreter,
     keywords_to_match: &Vec<Vec<BqsqlKeyword>>,
 ) -> Option<Vec<BqsqlKeyword>> {
+    //do not accept comments in the beginning
+    if interpreter.is_line_comment(interpreter.index) {
+        return None;
+    }
+
     for keywords in keywords_to_match {
         let mut matched = 0;
         let mut index = interpreter.index;
@@ -381,6 +387,27 @@ fn get_relevant_keywords_match_where() {
     let keywords = keywords_option.unwrap();
     assert_eq!(1, keywords.len());
     assert_eq!(BqsqlKeyword::Where, keywords[0]);
+}
+
+#[test]
+fn get_relevant_keywords_match_with() {
+    let mut interpreter = BqsqlInterpreter::new(
+        r#"WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
+SELECT *
+FROM
+(WITH q2 AS (SELECT * FROM q1),  # q1 resolves to my_query
+    q3 AS (SELECT * FROM q1),  # q1 resolves to my_query
+    q1 AS (SELECT * FROM q1),  # q1 (in the query) resolves to my_query
+    q4 AS (SELECT * FROM q1)   # q1 resolves to the WITH subquery on the previous line.
+SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#,
+    );
+
+    interpreter.index = 9;
+    let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
+
+    let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+
+    assert!(keywords_option.is_none());
 }
 
 impl BqsqlDocumentItem {

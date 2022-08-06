@@ -332,7 +332,7 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- QUERY_SELECT_AS_STRUCT
     assert_eq!(
-        BqsqlDocumentItemType::QuerySelectAsStruct,
+        BqsqlDocumentItemType::QuerySelect,
         select_as_struct.item_type
     );
     assert_eq!(None, select_as_struct.range);

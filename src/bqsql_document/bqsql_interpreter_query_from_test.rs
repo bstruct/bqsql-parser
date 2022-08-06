@@ -30,6 +30,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- Keyword
     //--- --- --- --- QueryCteName
     //--- --- ParenthesesClose
+    //--- --- LineComment
 
     //--- QuerySelect
     //--- --- Keyword
@@ -120,7 +121,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     let query_with = &query.items[0];
     assert_eq!(BqsqlDocumentItemType::QueryWith, query_with.item_type);
     assert_eq!(None, query_with.range);
-    assert_eq!(4, query_with.items.len());
+    assert_eq!(7, query_with.items.len());
 
     //--- --- Keyword
     assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[0].item_type);
@@ -128,12 +129,12 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(0, query_with.items[0].items.len());
 
     //--- --- QueryCteName
-    assert_eq!(BqsqlDocumentItemType::QueryCteName, query_with.items[1].item_type);
+    // assert_eq!(BqsqlDocumentItemType::QueryCteName, query_with.items[1].item_type);
     assert_eq!(Some([0, 5, 7]), query_with.items[1].range);
     assert_eq!(0, query_with.items[1].items.len());
 
     //--- --- KeywordAs
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[2].item_type);
+    // assert_eq!(BqsqlDocumentItemType::Keyword, query_with.items[2].item_type);
     assert_eq!(Some([0, 8, 10]), query_with.items[2].range);
     assert_eq!(0, query_with.items[2].items.len());
 
@@ -169,6 +170,11 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(BqsqlDocumentItemType::ParenthesesClose, query_with.items[5].item_type);
     assert_eq!(Some([0, 39, 40]), query_with.items[5].range);
     assert_eq!(0, query_with.items[5].items.len());
+
+    //--- --- LineComment
+    assert_eq!(BqsqlDocumentItemType::LineComment, query_with.items[6].item_type);
+    assert_eq!(Some([0, 41, 50]), query_with.items[6].range);
+    assert_eq!(0, query_with.items[6].items.len());
 
     //--- QuerySelect
     //--- --- Keyword

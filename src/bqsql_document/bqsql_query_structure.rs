@@ -124,28 +124,28 @@ impl BqsqlQueryStructure {
                 return BqsqlDocumentItemType::QueryWhere;
             }
             BqsqlQueryStructure::GroupBy => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryGroupBy;
             }
             BqsqlQueryStructure::Rollup => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryRollup;
             }
             BqsqlQueryStructure::Having => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryHaving;
             }
             BqsqlQueryStructure::Qualify => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryQualify;
             }
             BqsqlQueryStructure::Window => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryWindow;
             }
             BqsqlQueryStructure::OrderBy => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryOrderBy;
             }
             BqsqlQueryStructure::Limit => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryLimit;
             }
             BqsqlQueryStructure::Offset => {
-                return BqsqlDocumentItemType::With;
+                return BqsqlDocumentItemType::QueryOffset;
             }
         }
     }

@@ -56,16 +56,25 @@ pub enum BqsqlDocumentItemType {
     QueryCteName,
 
     QuerySelect,
-    QuerySelectAll,
-    QuerySelectDistinct,
-    QuerySelectAsStruct,
-    QuerySelectAsValue,
+    // QuerySelectAll,
+    // QuerySelectDistinct,
+    // QuerySelectAsStruct,
+    // QuerySelectAsValue,
 
     QuerySelectListItem,
-    QuerySelectStar,
-    QuerySelectColumnName,
+    // QuerySelectStar,
+    // QuerySelectColumnName,
 
     QueryFrom,
+    QueryWhere,
+    QueryGroupBy,
+    QueryRollup,
+    QueryHaving,
+    QueryQualify,
+    QueryWindow,
+    QueryOrderBy,
+    QueryLimit,
+    QueryOffset,
 }
 
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {

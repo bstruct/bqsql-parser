@@ -1,6 +1,6 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
-    bqsql_interpreter::{self, get_relevant_keywords_match, BqsqlInterpreter, handle_semicolon},
+    bqsql_interpreter::{self, get_relevant_keywords_match, handle_semicolon, BqsqlInterpreter},
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType,
@@ -252,50 +252,17 @@ fn handle_query_stage(
             }
         }
 
-        //loop tokens inside the expected block of the query
-        let mut count_open_parentheses: usize = 0;
         let subsequent_query_structure = &query_stage.get_subsequent_query_structure();
-        while continue_loop_query(
-            interpreter,
-            subsequent_query_structure,
-            count_open_parentheses,
-        ) {
-            if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
-                //parentheses open
-                items
-                    .push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
-                count_open_parentheses += 1;
-                continue;
-            } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose)
-            {
-                //parentheses close
-                if count_open_parentheses == 0 {
-                    break;
-                }
-                items.push(
-                    interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose),
-                );
-                count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
-                continue;
-            } else if interpreter.is_query() {
-                items.push(interpreter.handle_query());
-                continue;
-            } else if interpreter.is_number() {
-                //number
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
-                continue;
-            } else if interpreter.is_string(interpreter.index) {
-                //string
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
-                continue;
-            } else if interpreter.is_line_comment(interpreter.index) {
-                //line comment
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
-                continue;
-            }
 
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Unknown));
-        }
+        //https://doc.rust-lang.org/book/ch19-05-advanced-functions-and-closures.html
+        match query_stage {
+            // BqsqlQueryStructure::With => {}
+            // BqsqlQueryStructure::Select => {}
+            _ => {
+                let new_items = &mut default_loop_query(interpreter, subsequent_query_structure);
+                items.append(new_items);
+            }
+        };
 
         return Some(BqsqlDocumentItem::new(
             query_stage.get_document_item_type(),
@@ -316,16 +283,16 @@ fn continue_loop_query(
             return false;
         }
 
+        //parentheses close
+        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+            if count_open_parentheses == 0 {
+                return false;
+            }
+        }
+
         if count_open_parentheses > 0 {
             return true;
         }
-
-        // match query_stage {
-        //     // BqsqlQueryStructure::With => {}
-        //     // BqsqlQueryStructure::Select => {}
-        //     BqsqlQueryStructure::From => {}
-        //     _ => todo!(),
-        // }
 
         //are any of the subsequent keywords of the query found?
         return !subsequent_query_structure
@@ -335,6 +302,52 @@ fn continue_loop_query(
     }
 
     false
+}
+
+fn default_loop_query(
+    interpreter: &mut BqsqlInterpreter,
+    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+) -> Vec<Option<BqsqlDocumentItem>> {
+    let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+
+    //loop tokens inside the expected block of the query
+    let mut count_open_parentheses: usize = 0;
+    while continue_loop_query(
+        interpreter,
+        subsequent_query_structure,
+        count_open_parentheses,
+    ) {
+        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
+            //parentheses open
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+            count_open_parentheses += 1;
+            continue;
+        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+            //parentheses close
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
+            count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
+            continue;
+        } else if interpreter.is_query() {
+            items.push(interpreter.handle_query());
+            continue;
+        } else if interpreter.is_number() {
+            //number
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
+            continue;
+        } else if interpreter.is_string(interpreter.index) {
+            //string
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
+            continue;
+        } else if interpreter.is_line_comment(interpreter.index) {
+            //line comment
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+            continue;
+        }
+
+        items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Unknown));
+    }
+
+    items
 }
 
 #[test]

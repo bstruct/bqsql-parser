@@ -252,6 +252,7 @@ fn comment_and_tiny_query() {
 
 #[test]
 fn select_select_as_struct_query() {
+    
     let document =
         BqsqlDocument::parse("SELECT (SELECT AS STRUCT 2+2 AS asas, 'ASDASD' AS qweqwe) AS XXX");
 

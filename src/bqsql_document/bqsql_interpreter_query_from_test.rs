@@ -179,12 +179,12 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(0, query_1_items_0_items[0].items.len());
 
     //--- --- --- --- QuerySelectListItem
-    // assert_eq!(
-    //     BqsqlDocumentItemType::QuerySelectListItem,
-    //     query_1_items_0_items[1].item_type
-    // );
-    // assert_eq!(None, query_1_items_0_items[1].range);
-    // assert_eq!(1, query_1_items_0_items[1].items.len());
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_1_items_0_items[1].item_type
+    );
+    assert_eq!(None, query_1_items_0_items[1].range);
+    assert_eq!(1, query_1_items_0_items[1].items.len());
 
     //--- --- --- --- --- QuerySelectColumnName
 

@@ -4,6 +4,8 @@ use super::BqsqlDocumentItemType;
 pub(crate) enum BqsqlDelimiter {
     ParenthesesOpen,
     ParenthesesClose,
+    SquareBracketsOpen,
+    SquareBracketsClose,
     Dot,
     Comma,
     Semicolon,
@@ -13,6 +15,8 @@ impl BqsqlDelimiter {
         match self {
             BqsqlDelimiter::ParenthesesOpen => "(",
             BqsqlDelimiter::ParenthesesClose => ")",
+            BqsqlDelimiter::SquareBracketsOpen => "[",
+            BqsqlDelimiter::SquareBracketsClose => "]",
             BqsqlDelimiter::Dot => ".",
             BqsqlDelimiter::Comma => ",",
             BqsqlDelimiter::Semicolon => ";",
@@ -23,6 +27,8 @@ impl BqsqlDelimiter {
         match self {
             BqsqlDelimiter::ParenthesesOpen => BqsqlDocumentItemType::ParenthesesOpen,
             BqsqlDelimiter::ParenthesesClose => BqsqlDocumentItemType::ParenthesesClose,
+            BqsqlDelimiter::SquareBracketsOpen => BqsqlDocumentItemType::SquareBracketsOpen,
+            BqsqlDelimiter::SquareBracketsClose => BqsqlDocumentItemType::SquareBracketsClose,
             BqsqlDelimiter::Dot => BqsqlDocumentItemType::Dot,
             BqsqlDelimiter::Comma => BqsqlDocumentItemType::Comma,
             BqsqlDelimiter::Semicolon => BqsqlDocumentItemType::Semicolon,
@@ -45,11 +51,15 @@ impl PartialEq<BqsqlDelimiter> for &str {
 fn compare_all() {
     assert_eq!(BqsqlDelimiter::ParenthesesOpen, "(");
     assert_eq!(BqsqlDelimiter::ParenthesesClose, ")");
+    assert_eq!(BqsqlDelimiter::SquareBracketsOpen, "[");
+    assert_eq!(BqsqlDelimiter::SquareBracketsClose, "]");
     assert_eq!(BqsqlDelimiter::Dot, ".");
     assert_eq!(BqsqlDelimiter::Comma, ",");
     assert_eq!(BqsqlDelimiter::Semicolon, ";");
     assert_eq!("(", BqsqlDelimiter::ParenthesesOpen);
     assert_eq!(")", BqsqlDelimiter::ParenthesesClose);
+    assert_eq!("[", BqsqlDelimiter::SquareBracketsOpen);
+    assert_eq!("]", BqsqlDelimiter::SquareBracketsClose);
     assert_eq!(".", BqsqlDelimiter::Dot);
     assert_eq!(",", BqsqlDelimiter::Comma);
     assert_eq!(";", BqsqlDelimiter::Semicolon);

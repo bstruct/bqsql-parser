@@ -78,7 +78,7 @@ fn tiny_query() {
     assert_eq!(Some([0, 0, 6]), k_0.range);
     assert_eq!(0, k_0.items.len());
 
-    //--- --- QUERY_SELECT_LIST_ITEM
+    //--- --- 
     let query_list_item_0 = &query_select.items[1];
     assert_eq!(
         BqsqlDocumentItemType::QuerySelectListItem,

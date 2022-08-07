@@ -1,6 +1,9 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
-    bqsql_interpreter::{self, get_relevant_keywords_match, handle_semicolon, BqsqlInterpreter, is_number},
+    bqsql_interpreter::{
+        self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_semicolon,
+        is_number, BqsqlInterpreter,
+    },
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType,
@@ -185,7 +188,9 @@ fn handle_query_stage(
                 document_item_handler_with,
             );
         }
-        // BqsqlQueryStructure::Select => {},
+        BqsqlQueryStructure::Select => {
+            return handle_query_stage_select(interpreter, document_item_handler_unknown);
+        }
         _ => {
             return handle_query_stage_default(
                 interpreter,
@@ -209,18 +214,8 @@ fn handle_query_stage_default(
     if let Some(keywords_match) =
         bqsql_interpreter::get_relevant_keywords_match(interpreter, keywords_to_match)
     {
-        let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
-
-        //add keywords
-        let mut matched = 0;
-        while matched < keywords_match.len() {
-            if interpreter.is_line_comment(interpreter.index) {
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
-            } else {
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Keyword));
-                matched += 1;
-            }
-        }
+        let mut items: Vec<Option<BqsqlDocumentItem>> =
+            Vec::from(handle_query_keywords(interpreter, keywords_match));
 
         let subsequent_query_structure = &query_stage.get_subsequent_query_structure();
 
@@ -240,6 +235,26 @@ fn handle_query_stage_default(
     None
 }
 
+fn handle_query_keywords(
+    interpreter: &mut BqsqlInterpreter,
+    keywords_match: Vec<BqsqlKeyword>,
+) -> Vec<Option<BqsqlDocumentItem>> {
+    let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+
+    //add keywords
+    let mut matched = 0;
+    while matched < keywords_match.len() {
+        if interpreter.is_line_comment(interpreter.index) {
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+        } else {
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Keyword));
+            matched += 1;
+        }
+    }
+
+    items
+}
+
 fn loop_query_default(
     interpreter: &mut BqsqlInterpreter,
     subsequent_query_structure: &Vec<BqsqlQueryStructure>,
@@ -249,10 +264,11 @@ fn loop_query_default(
 
     //loop tokens inside the expected block of the query
     let mut count_open_parentheses: usize = 0;
+    let mut count_open_square_brackets: usize = 0;
     while continue_loop_query(
         interpreter,
         subsequent_query_structure,
-        count_open_parentheses,
+        count_open_parentheses + count_open_square_brackets,
     ) {
         if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
             //parentheses open
@@ -264,7 +280,18 @@ fn loop_query_default(
             items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
             continue;
-        }  else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Comma) {
+        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::SquareBracketsOpen) {
+            //parentheses open
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::SquareBracketsOpen));
+            count_open_square_brackets += 1;
+            continue;
+        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::SquareBracketsClose) {
+            //parentheses close
+            items
+                .push(interpreter.handle_document_item(BqsqlDocumentItemType::SquareBracketsClose));
+            count_open_square_brackets = std::cmp::max(0, count_open_square_brackets - 1);
+            continue;
+        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Comma) {
             //comma
             items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Comma));
             continue;
@@ -279,9 +306,20 @@ fn loop_query_default(
             //string
             items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
             continue;
+        } else if interpreter.is_keyword(interpreter.index, BqsqlKeyword::As) {
+            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::KeywordAs));
+            continue;
         } else if interpreter.is_line_comment(interpreter.index) {
             //line comment
             items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+            continue;
+        } else if let Some(operator) = get_relevant_operators_all_match(interpreter) {
+            let mut index: usize = 0;
+            let len = operator.to_vec().len();
+            while index < len {
+                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Operator));
+                index += 1;
+            }
             continue;
         }
 
@@ -341,6 +379,200 @@ fn continue_loop_query(
     }
 
     false
+}
+
+fn handle_query_stage_select(
+    interpreter: &mut BqsqlInterpreter,
+    //https://doc.rust-lang.org/book/ch19-05-advanced-functions-and-closures.html
+    document_item_handler: fn(&mut BqsqlInterpreter) -> Option<BqsqlDocumentItem>,
+) -> Option<BqsqlDocumentItem> {
+    //get keywords associated with this query stage to
+    // 1) confirm that they are found
+    // 2) if they are found, they are added as keywords to the document_item items
+    let keywords_to_match = &BqsqlQueryStructure::Select.get_keywords();
+    if let Some(keywords_match) =
+        bqsql_interpreter::get_relevant_keywords_match(interpreter, keywords_to_match)
+    {
+        let mut items: Vec<Option<BqsqlDocumentItem>> =
+            Vec::from(handle_query_keywords(interpreter, keywords_match));
+
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+        //get items
+        let new_items = loop_query_default(
+            interpreter,
+            subsequent_query_structure,
+            document_item_handler,
+        );
+        // items.append(new_items);
+
+        //break new_items per significant (not between brackets) comma
+        for list_items in handle_query_stage_select_split_list_items(&new_items) {
+            let i = BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::QuerySelectListItem,
+                list_items.to_vec(),
+            );
+
+            items.push(Some(i));
+        }
+
+        return Some(BqsqlDocumentItem::new(
+            BqsqlDocumentItemType::QuerySelect,
+            items,
+        ));
+    }
+    None
+}
+
+fn handle_query_stage_select_split_list_items<'a>(
+    items: &'a Vec<Option<BqsqlDocumentItem>>,
+) -> Vec<&'a [Option<BqsqlDocumentItem>]> {
+    let mut items_to_return = Vec::new();
+
+    let mut last_index: usize = 0;
+    let mut index: usize = 0;
+    let mut parentheses_open: usize = 0;
+    let mut square_brackets_open: usize = 0;
+    while index < items.len() {
+        if let Some(item) = &items[index] {
+            match item.item_type {
+                BqsqlDocumentItemType::ParenthesesOpen => parentheses_open += 1,
+                BqsqlDocumentItemType::ParenthesesClose => parentheses_open -= 1,
+                BqsqlDocumentItemType::SquareBracketsOpen => square_brackets_open += 1,
+                BqsqlDocumentItemType::SquareBracketsClose => square_brackets_open -= 1,
+                BqsqlDocumentItemType::Comma => {
+                    if parentheses_open + square_brackets_open == 0 {
+                        index += 1;
+                        items_to_return.push(&items[last_index..index]);
+                        last_index = index;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        index += 1;
+    }
+
+    if last_index == 0 || last_index < index {
+        items_to_return.push(&items[last_index..]);
+    }
+
+    items_to_return
+}
+
+#[test]
+fn handle_query_stage_select_split_list_1_items_no_delimiters() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t");
+    interpreter.index = 1;
+
+    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+    let items = &loop_query_default(
+        &mut interpreter,
+        subsequent_query_structure,
+        document_item_handler_unknown,
+    );
+
+    let split = handle_query_stage_select_split_list_items(items);
+
+    assert_eq!(1, split.len());
+    assert_eq!(1, split[0].len());
+}
+
+#[test]
+fn handle_query_stage_select_split_list_1_items_delimiters() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT (1) FROM t");
+    interpreter.index = 1;
+
+    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+    let items = &loop_query_default(
+        &mut interpreter,
+        subsequent_query_structure,
+        document_item_handler_unknown,
+    );
+
+    let split = handle_query_stage_select_split_list_items(items);
+
+    assert_eq!(1, split.len());
+    assert_eq!(3, split[0].len());
+}
+
+#[test]
+fn handle_query_stage_select_split_list_5_items_no_delimiters() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 1,2,3,4,5+1 FROM t");
+    interpreter.index = 1;
+
+    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+    let items = &loop_query_default(
+        &mut interpreter,
+        subsequent_query_structure,
+        document_item_handler_unknown,
+    );
+
+    let split = handle_query_stage_select_split_list_items(items);
+
+    assert_eq!(5, split.len());
+    assert_eq!(2, split[0].len());
+    assert_eq!(2, split[1].len());
+    assert_eq!(2, split[2].len());
+    assert_eq!(2, split[3].len());
+    assert_eq!(3, split[4].len());
+}
+
+#[test]
+fn handle_query_stage_select_split_list_3_items_delimiters() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT (1,2,3),4,5+1 FROM t");
+
+    assert_eq!(16, interpreter.tokens.len());
+
+    interpreter.index = 1;
+
+    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+    let items = &loop_query_default(
+        &mut interpreter,
+        subsequent_query_structure,
+        document_item_handler_unknown,
+    );
+
+    assert_eq!(13, items.len());
+
+    let split = handle_query_stage_select_split_list_items(items);
+
+    assert_eq!(3, split.len());
+    assert_eq!(8, split[0].len());
+    assert_eq!(2, split[1].len());
+    assert_eq!(3, split[2].len());
+}
+
+#[test]
+fn handle_query_stage_select_split_list_3_items_delimiters_square() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT [1,2,3],4,5+1 FROM t");
+
+    assert_eq!(16, interpreter.tokens.len());
+
+    interpreter.index = 1;
+
+    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+    let items = &loop_query_default(
+        &mut interpreter,
+        subsequent_query_structure,
+        document_item_handler_unknown,
+    );
+
+    assert_eq!(13, items.len());
+
+    let split = handle_query_stage_select_split_list_items(items);
+
+    assert_eq!(3, split.len());
+    assert_eq!(8, split[0].len());
+    assert_eq!(2, split[1].len());
+    assert_eq!(3, split[2].len());
 }
 
 #[test]

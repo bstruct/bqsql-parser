@@ -237,42 +237,50 @@ pub(crate) fn is_number(interpreter: &BqsqlInterpreter) -> bool {
 }
 
 #[test]
-fn is_number_q1(){
+fn is_number_q1() {
     let mut interpreter = BqsqlInterpreter::new("SELECT q1");
-    interpreter.index=1;
+    interpreter.index = 1;
     assert_eq!(&2, &interpreter.tokens.len());
     assert!(!is_number(&interpreter));
 }
 
 #[test]
-fn is_number_1(){
+fn is_number_1() {
     let mut interpreter = BqsqlInterpreter::new("SELECT 1");
-    interpreter.index=1;
+    interpreter.index = 1;
     assert_eq!(&2, &interpreter.tokens.len());
     assert!(is_number(&interpreter));
 }
 
 #[test]
-fn is_number_1_112(){
+fn is_number_1_112() {
     let mut interpreter = BqsqlInterpreter::new("SELECT 1.112");
-    interpreter.index=1;
+    interpreter.index = 1;
     assert_eq!(&2, &interpreter.tokens.len());
     assert!(is_number(&interpreter));
 }
 
 #[test]
-fn is_number_1_(){
+fn is_number_1_() {
     let mut interpreter = BqsqlInterpreter::new("SELECT 1.");
-    interpreter.index=1;
+    interpreter.index = 1;
     assert_eq!(&2, &interpreter.tokens.len());
     assert!(is_number(&interpreter));
 }
 
 #[test]
-fn is_number_dot_112(){
+fn is_number_dot_112() {
     let mut interpreter = BqsqlInterpreter::new("SELECT .112");
-    interpreter.index=1;
+    interpreter.index = 1;
     assert_eq!(&2, &interpreter.tokens.len());
+    assert!(is_number(&interpreter));
+}
+
+#[test]
+fn is_number_dot_after_operator() {
+    let mut interpreter = BqsqlInterpreter::new("SELECT 2+2");
+    interpreter.index = 3;
+    assert_eq!(&4, &interpreter.tokens.len());
     assert!(is_number(&interpreter));
 }
 
@@ -448,6 +456,55 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
 
     assert!(keywords_option.is_none());
+}
+
+/*
+try to match any operator defined in BqsqlOperator
+ */
+pub(crate) fn get_relevant_operators_all_match<'a>(
+    interpreter: &'a BqsqlInterpreter,
+) -> Option<BqsqlOperator> {
+    //do not accept comments in the beginning
+    if interpreter.is_line_comment(interpreter.index) {
+        return None;
+    }
+
+    let all_operators = &BqsqlOperator::get_all();
+    let mut operators_list: Vec<(&BqsqlOperator, Vec<&str>)> = all_operators
+        .iter()
+        .map(|i| (i, i.to_vec()))
+        .collect();
+
+    operators_list.sort_by(|a, b| a.1.len().cmp(&b.1.len()));
+
+    for operator in operators_list {
+        let mut matched = 0;
+        let mut index = interpreter.index;
+
+        while interpreter.is_in_range(index) && matched < operator.1.len() {
+            let op = operator.1[matched];
+
+            if interpreter.is_line_comment(index) {
+                index += 1;
+            } else {
+                if let Some(string_in_range) = interpreter.get_string_in_range(index) {
+                    if string_in_range.to_uppercase() == op {
+                        index += 1;
+                        matched += 1;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if matched >= operator.1.len() {
+                return Some(operator.0.clone());
+            }
+        }
+    }
+
+    None
 }
 
 pub(crate) fn handle_semicolon(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {

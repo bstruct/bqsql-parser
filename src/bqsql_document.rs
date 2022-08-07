@@ -41,6 +41,8 @@ pub enum BqsqlDocumentItemType {
     // METHOD,
     ParenthesesOpen,
     ParenthesesClose,
+    SquareBracketsOpen,
+    SquareBracketsClose,
     Comma,
     Semicolon,
     Dot,

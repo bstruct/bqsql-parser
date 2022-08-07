@@ -3,7 +3,7 @@ use regex::Regex;
 
 pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"`.*`|\d*\.{1}\d*|[A-z0-9_]+|\W?").unwrap();
+        static ref RE: Regex = Regex::new(r"`.*`|\d*\.{1}\d*|[A-Za-z0-9_]+|\W?").unwrap();
     }
 
     let mut tokens: Vec<[usize; 3]> = Vec::new();
@@ -36,6 +36,9 @@ pub fn parse_tokens(bqsql: &str) -> Vec<[usize; 3]> {
 
             for m in RE.find_iter(adjusted_line) {
                 let partial = &adjusted_line[m.start()..m.end()];
+
+                // println!("{}", partial.to_string());
+
                 if partial.trim().len() > 0 {
                     tokens.push([line_index, gap[0] + m.start(), gap[0] + m.end()]);
                 }
@@ -138,7 +141,7 @@ fn parse_tokens_strings_multi_select() {
 
 #[test]
 fn parse_tokens_single_quote_in_string() {
-    let result = parse_tokens("SELECT 'Timmy O\\\'Hara'");
+    let result = parse_tokens("SeLeCT 'Timmy O\\\'Hara'");
 
     assert_eq!(2, result.len());
 
@@ -212,6 +215,30 @@ fn parse_tokens_queries_file() {
 
     let l9: Vec<[usize; 3]> = result.iter().filter(|l| l[0] == 9).map(|l| *l).collect();
     assert_eq!(9, l9.len());
+}
+
+#[test]
+fn parse_tokens_square_brackets() {
+    let result = parse_tokens("SELECT [1,2,3],4,5+1 FROM t");
+
+    assert_eq!(16, result.len());
+
+    assert_eq!([0, 0, 6], result[0]);
+    assert_eq!([0, 7, 8], result[1]);
+    assert_eq!([0, 8, 9], result[2]);
+    assert_eq!([0, 9, 10], result[3]);
+    assert_eq!([0, 10, 11], result[4]);
+    assert_eq!([0, 11, 12], result[5]);
+    assert_eq!([0, 12, 13], result[6]);
+    assert_eq!([0, 13, 14], result[7]);
+    assert_eq!([0, 14, 15], result[8]);
+    assert_eq!([0, 15, 16], result[9]);
+    assert_eq!([0, 16, 17], result[10]);
+    assert_eq!([0, 17, 18], result[11]);
+    assert_eq!([0, 18, 19], result[12]);
+    assert_eq!([0, 19, 20], result[13]);
+    assert_eq!([0, 21, 25], result[14]);
+    assert_eq!([0, 26, 27], result[15]);
 }
 
 fn find_strings_and_line_comments(line: &str) -> Vec<[usize; 2]> {

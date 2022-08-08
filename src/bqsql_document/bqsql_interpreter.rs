@@ -136,64 +136,6 @@ impl BqsqlInterpreter<'_> {
         None
     }
 
-    // pub(crate) fn find_any_operator(&self, index: usize) -> Option<BqsqlOperator> {
-    //     let all = &BqsqlOperator::get_all();
-
-    //     if self.is_in_range(index + 2) {
-    //         let values3 = vec![
-    //             self.get_string_in_range(index),
-    //             self.get_string_in_range(index + 1),
-    //             self.get_string_in_range(index + 2),
-    //         ]
-    //         .iter()
-    //         .map(|i| i.unwrap().to_string())
-    //         .collect::<Vec<String>>();
-    //         let mut op3 = all
-    //             .iter()
-    //             .map(|i| (i, i.to_vec()))
-    //             .filter(|i| i.1.len() == 3);
-
-    //         if let Some(m) = op3.find(|i| i.1.to_vec() == values3) {
-    //             return Some(m.0.to_owned());
-    //         }
-    //     }
-
-    //     if self.is_in_range(index + 1) {
-    //         let values2 = vec![
-    //             self.get_string_in_range(index),
-    //             self.get_string_in_range(index + 1),
-    //         ]
-    //         .iter()
-    //         .map(|i| i.unwrap().to_string())
-    //         .collect::<Vec<String>>();
-    //         let mut op2 = all
-    //             .iter()
-    //             .map(|i| (i, i.to_vec()))
-    //             .filter(|i| i.1.len() == 2);
-
-    //         if let Some(m) = op2.find(|i| i.1.to_vec() == values2) {
-    //             return Some(m.0.to_owned());
-    //         }
-    //     }
-
-    //     if self.is_in_range(index) {
-    //         let values1 = vec![self.get_string_in_range(index)]
-    //             .iter()
-    //             .map(|i| i.unwrap().to_string())
-    //             .collect::<Vec<String>>();
-    //         let mut op1 = all
-    //             .iter()
-    //             .map(|i| (i, i.to_vec()))
-    //             .filter(|i| i.1.len() == 1);
-
-    //         if let Some(m) = op1.find(|i| i.1.to_vec() == values1) {
-    //             return Some(m.0.to_owned());
-    //         }
-    //     }
-
-    //     None
-    // }
-
     pub(crate) fn collect(&mut self) -> Vec<BqsqlDocumentItem> {
         let mut monitor_index = self.index;
         let mut items: Vec<BqsqlDocumentItem> = Vec::new();

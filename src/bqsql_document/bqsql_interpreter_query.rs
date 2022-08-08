@@ -189,7 +189,7 @@ fn handle_query_stage(
             );
         }
         BqsqlQueryStructure::Select => {
-            return handle_query_stage_select(interpreter, document_item_handler_unknown);
+            return handle_query_stage_select(interpreter, document_item_handler_select);
         }
         _ => {
             return handle_query_stage_default(
@@ -330,6 +330,14 @@ fn loop_query_default(
 }
 
 fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
+}
+
+fn document_item_handler_select(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::As) {
+        return interpreter.handle_document_item(BqsqlDocumentItemType::Alias);
+    }
+
     interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
 }
 

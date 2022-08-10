@@ -33,5 +33,5 @@ jobs:
     - name: wasm-pack build
       run: wasm-pack build --target nodejs
     - run: npm publish ./pkg/
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      env:
+        NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

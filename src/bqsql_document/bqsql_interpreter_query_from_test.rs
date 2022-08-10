@@ -42,66 +42,72 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //--- --- ParenthesesOpen
 
-    //--- --- QueryWith
-    //--- --- --- Keyword
-    //--- --- --- QueryCteName
-    //--- --- --- KeywordAs
-    //--- --- --- ParenthesesOpen
-    //--- --- --- --- QuerySelect
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- QueryFrom
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QueryCteName
-    //--- --- --- ParenthesesClose
-    //--- --- --- Comma
-
-    //--- --- --- QueryCteName
-    //--- --- --- KeywordAs
-    //--- --- --- ParenthesesOpen
-    //--- --- --- --- QuerySelect
-    //--- --- --- ---  ---Keyword
-    //--- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- QueryFrom
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QueryCteName
-    //--- --- --- ParenthesesClose
-    //--- --- --- Comma
-
-    //--- --- --- QueryCteName
+    //--- --- Query
+    //--- --- --- QueryWith
+    //--- --- --- --- Keyword
+    //--- --- --- --- QueryCteName
     //--- --- --- --- KeywordAs
     //--- --- --- --- ParenthesesOpen
-    //--- --- --- --- --- QuerySelect
-    //--- --- --- --- ---  ---Keyword
-    //--- --- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- --- QueryFrom
-    //--- --- --- --- --- --- Keyword
-    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- Query
+    //--- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QueryCteName
     //--- --- --- --- ParenthesesClose
     //--- --- --- --- Comma
 
-    //--- --- --- QueryCteName
+    //--- --- --- --- QueryCteName
     //--- --- --- --- KeywordAs
     //--- --- --- --- ParenthesesOpen
-    //--- --- --- --- --- QuerySelect
-    //--- --- --- --- ---  ---Keyword
-    //--- --- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- --- QueryFrom
-    //--- --- --- --- --- --- Keyword
-    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- Query
+    //--- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QueryCteName
     //--- --- --- --- ParenthesesClose
+    //--- --- --- --- Comma
 
-    //--- --- QuerySelect
-    //--- --- --- Keyword
-    //--- --- --- QuerySelectListItem
-    //--- --- --- --- QuerySelectStar
-    //--- --- QueryFrom
-    //--- --- --- Keyword
-    //--- --- --- QueryCteName
+    //--- --- --- --- QueryCteName
+    //--- --- --- --- --- KeywordAs
+    //--- --- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- --- Query
+    //--- --- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- ParenthesesClose
+    //--- --- --- --- --- Comma
+
+    //--- --- --- --- QueryCteName
+    //--- --- --- --- --- KeywordAs
+    //--- --- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- --- Query
+    //--- --- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- ParenthesesClose
+
+
+    //--- --- --- QuerySelect
+    //--- --- --- --- Keyword
+    //--- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- QuerySelectStar
+    //--- --- --- QueryFrom
+    //--- --- --- --- Keyword
+    //--- --- --- --- QueryCteName
 
     //--- --- ParenthesesClose
     //--- Semicolon
@@ -189,12 +195,26 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- --- QuerySelectColumnName
 
     //--- --- --- QueryFrom
-    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_1_items[1].item_type);
-    assert_eq!(None, query_1_items[1].range);
-    assert_eq!(2, query_1_items[1].items.len());
+    let query_1_from = &query_1_items[1];
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_1_from.item_type);
+    assert_eq!(None, query_1_from.range);
+    assert_eq!(2, query_1_from.items.len());
 
     //--- --- --- --- Keyword
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_1_from.items[0].item_type
+    );
+    assert_eq!(Some([0, 28, 32]), query_1_from.items[0].range);
+    assert_eq!(0, query_1_from.items[0].items.len());
+
     //--- --- --- --- QueryCteName
+    assert_eq!(
+        BqsqlDocumentItemType::Unknown,
+        query_1_from.items[1].item_type
+    );
+    assert_eq!(Some([0, 33, 39]), query_1_from.items[1].range);
+    assert_eq!(0, query_1_from.items[1].items.len());
 
     //--- --- ParenthesesClose
     assert_eq!(
@@ -219,76 +239,141 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     assert_eq!(2, query_select.items.len());
 
     //--- --- Keyword
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_select.items[0].item_type
+    );
+    assert_eq!(Some([1, 0, 6]), query_select.items[0].range);
+    assert_eq!(0, query_select.items[0].items.len());
+
     //--- --- QuerySelectListItem
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[1].item_type
+    );
+    assert_eq!(None, query_select.items[1].range);
+    assert_eq!(1, query_select.items[1].items.len());
+
     //--- --- --- QuerySelectStar
+    assert_eq!(
+        BqsqlDocumentItemType::Operator,
+        query_select.items[1].items[0].item_type
+    );
+    assert_eq!(Some([1, 7, 8]), query_select.items[1].items[0].range);
+    assert_eq!(0, query_select.items[1].items[0].items.len());
 
     //--- QueryFrom
+    let query_from = &query.items[2];
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
+    assert_eq!(None, query_from.range);
+    assert_eq!(4, query_from.items.len());
+
     //--- --- Keyword
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
+    assert_eq!(Some([2, 0, 4]), query_from.items[0].range);
+    assert_eq!(0, query_from.items[0].items.len());
 
     //--- --- ParenthesesOpen
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesOpen,
+        query_from.items[1].item_type
+    );
+    assert_eq!(Some([3, 0, 1]), query_from.items[1].range);
+    assert_eq!(0, query_from.items[1].items.len());
 
-    //--- --- QueryWith
-    //--- --- --- Keyword
-    //--- --- --- QueryCteName
-    //--- --- --- KeywordAs
-    //--- --- --- ParenthesesOpen
-    //--- --- --- --- QuerySelect
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- QueryFrom
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QueryCteName
-    //--- --- --- ParenthesesClose
-    //--- --- --- Comma
+    //--- --- Query
+    let query_f = &query_from.items[2];
+    assert_eq!(BqsqlDocumentItemType::Query, query_f.item_type);
+    assert_eq!(None, query_f.range);
+    assert_eq!(3, query_f.items.len());
 
-    //--- --- --- QueryCteName
-    //--- --- --- KeywordAs
-    //--- --- --- ParenthesesOpen
-    //--- --- --- --- QuerySelect
-    //--- --- --- ---  ---Keyword
-    //--- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- QueryFrom
-    //--- --- --- --- --- Keyword
-    //--- --- --- --- --- QueryCteName
-    //--- --- --- ParenthesesClose
-    //--- --- --- Comma
+    //--- --- --- QueryWith
+    assert_eq!(BqsqlDocumentItemType::QueryWith, query_f.items[0].item_type);
+    assert_eq!(None, query_f.items[0].range);
+    assert_eq!(28, query_f.items[0].items.len());
 
-    //--- --- --- QueryCteName
+    //--- --- --- --- Keyword
+    //--- --- --- --- QueryCteName
     //--- --- --- --- KeywordAs
     //--- --- --- --- ParenthesesOpen
-    //--- --- --- --- --- QuerySelect
-    //--- --- --- --- ---  ---Keyword
-    //--- --- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- --- QueryFrom
-    //--- --- --- --- --- --- Keyword
-    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- Query
+    //--- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QueryCteName
     //--- --- --- --- ParenthesesClose
     //--- --- --- --- Comma
 
-    //--- --- --- QueryCteName
+    //--- --- --- --- QueryCteName
     //--- --- --- --- KeywordAs
     //--- --- --- --- ParenthesesOpen
-    //--- --- --- --- --- QuerySelect
-    //--- --- --- --- ---  ---Keyword
-    //--- --- --- --- --- --- QuerySelectListItem
-    //--- --- --- --- --- --- --- QuerySelectStar
-    //--- --- --- --- --- QueryFrom
-    //--- --- --- --- --- --- Keyword
-    //--- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- Query
+    //--- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- QueryCteName
     //--- --- --- --- ParenthesesClose
+    //--- --- --- --- Comma
 
-    //--- --- QuerySelect
-    //--- --- --- Keyword
-    //--- --- --- QuerySelectListItem
-    //--- --- --- --- QuerySelectStar
-    //--- --- QueryFrom
-    //--- --- --- Keyword
-    //--- --- --- QueryCteName
+    //--- --- --- --- QueryCteName
+    //--- --- --- --- --- KeywordAs
+    //--- --- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- --- Query
+    //--- --- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- ParenthesesClose
+    //--- --- --- --- --- Comma
+
+    //--- --- --- --- QueryCteName
+    //--- --- --- --- --- KeywordAs
+    //--- --- --- --- --- ParenthesesOpen
+    //--- --- --- --- --- --- Query
+    //--- --- --- --- --- --- --- QuerySelect
+    //--- --- --- --- --- --- ---  ---Keyword
+    //--- --- --- --- --- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- --- --- --- --- QuerySelectStar
+    //--- --- --- --- --- --- --- QueryFrom
+    //--- --- --- --- --- --- --- --- Keyword
+    //--- --- --- --- --- --- --- --- QueryCteName
+    //--- --- --- --- --- ParenthesesClose
+
+    //--- --- --- QuerySelect
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_f.items[1].item_type);
+    assert_eq!(None, query_f.items[1].range);
+    assert_eq!(2, query_f.items[1].items.len());
+
+    //--- --- --- --- Keyword
+    //--- --- --- --- QuerySelectListItem
+    //--- --- --- --- --- QuerySelectStar
+    //--- --- --- QueryFrom
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_f.items[2].item_type);
+    assert_eq!(None, query_f.items[2].range);
+    assert_eq!(2, query_f.items[2].items.len());
+
+    //--- --- --- --- Keyword
+    //--- --- --- --- QueryCteName
 
     //--- --- ParenthesesClose
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesClose,
+        query_from.items[3].item_type
+    );
+    assert_eq!(Some([7, 16, 17]), query_from.items[3].range);
+    assert_eq!(0, query_from.items[3].items.len());
 
     //--- Semicolon
     assert_eq!(BqsqlDocumentItemType::Semicolon, query.items[3].item_type);

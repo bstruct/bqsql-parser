@@ -7,5 +7,9 @@ rust
 
         console.info(JSON.stringify(p));
 
+        const p2 = m.get_all_functions();
+        console.info(JSON.stringify(p2));        
+
+
     })
     .catch(console.error);

@@ -52,17 +52,11 @@ pub enum BqsqlDocumentItemType {
     Query,
 
     QueryWith,
-    QueryWithRecursive,
     //CTE stands for 'common table expressions'.
     //The name of the table in the WITH statement
     QueryCteName,
 
     QuerySelect,
-    // QuerySelectAll,
-    // QuerySelectDistinct,
-    // QuerySelectAsStruct,
-    // QuerySelectAsValue,
-
     QuerySelectListItem,
     // QuerySelectStar,
     // QuerySelectColumnName,

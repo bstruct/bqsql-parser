@@ -22,8 +22,9 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version: 16
-        registry-url: https://npm.pkg.github.com/
-
+        registry-url: https://npm.pkg.github.com/ 
+        scope: '@bstruct'
+      
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -32,6 +33,6 @@ jobs:
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     - name: wasm-pack build
       run: wasm-pack build --target nodejs
-    - run: npm publish ./pkg/
+    - run: npm publish ./pkg/ --access public
       env:
         NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

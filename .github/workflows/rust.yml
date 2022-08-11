@@ -33,6 +33,6 @@ jobs:
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     - name: wasm-pack build
       run: wasm-pack build --target nodejs
-    - run: npm publish ./pkg/ --registry "https://npm.pkg.github.com/" --scope @bstruct --access private
+    - run: npm publish ./pkg/ --registry "https://npm.pkg.github.com/@bstruct" --access private
       env:
         NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

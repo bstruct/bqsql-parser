@@ -1,8 +1,9 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
     bqsql_interpreter::{
-        self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_semicolon,
-        is_number, BqsqlInterpreter,
+        self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_document_item,
+        handle_semicolon, is_delimiter, is_keyword, is_line_comment, is_number, is_string,
+        BqsqlInterpreter, is_in_range,
     },
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
@@ -172,8 +173,8 @@ impl BqsqlInterpreter<'_> {
 // }
 
 fn is_query(interpreter: &BqsqlInterpreter) -> bool {
-    interpreter.is_keyword(interpreter.index, BqsqlKeyword::With)
-        || interpreter.is_keyword(interpreter.index, BqsqlKeyword::Select)
+    is_keyword(interpreter, interpreter.index, BqsqlKeyword::With)
+        || is_keyword(interpreter, interpreter.index, BqsqlKeyword::Select)
 }
 
 fn handle_query_stage(
@@ -244,10 +245,16 @@ fn handle_query_keywords(
     //add keywords
     let mut matched = 0;
     while matched < keywords_match.len() {
-        if interpreter.is_line_comment(interpreter.index) {
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+        if is_line_comment(interpreter, interpreter.index) {
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::LineComment,
+            ));
         } else {
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Keyword));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Keyword,
+            ));
             matched += 1;
         }
     }
@@ -270,54 +277,99 @@ fn loop_query_default(
         subsequent_query_structure,
         count_open_parentheses + count_open_square_brackets,
     ) {
-        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesOpen) {
+        if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::ParenthesesOpen,
+        ) {
             //parentheses open
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::ParenthesesOpen,
+            ));
             count_open_parentheses += 1;
             continue;
-        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+        } else if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::ParenthesesClose,
+        ) {
             //parentheses close
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::ParenthesesClose,
+            ));
             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
             continue;
-        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::SquareBracketsOpen) {
+        } else if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::SquareBracketsOpen,
+        ) {
             //parentheses open
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::SquareBracketsOpen));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::SquareBracketsOpen,
+            ));
             count_open_square_brackets += 1;
             continue;
-        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::SquareBracketsClose) {
+        } else if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::SquareBracketsClose,
+        ) {
             //parentheses close
-            items
-                .push(interpreter.handle_document_item(BqsqlDocumentItemType::SquareBracketsClose));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::SquareBracketsClose,
+            ));
             count_open_square_brackets = std::cmp::max(0, count_open_square_brackets - 1);
             continue;
-        } else if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Comma) {
+        } else if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::Comma) {
             //comma
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Comma));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Comma,
+            ));
             continue;
         } else if is_query(interpreter) {
             items.push(interpreter.handle_query());
             continue;
         } else if is_number(interpreter) {
             //number
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Number));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Number,
+            ));
             continue;
-        } else if interpreter.is_string(interpreter.index) {
+        } else if is_string(interpreter, interpreter.index) {
             //string
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::String));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::String,
+            ));
             continue;
-        } else if interpreter.is_keyword(interpreter.index, BqsqlKeyword::As) {
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::KeywordAs));
+        } else if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::KeywordAs,
+            ));
             continue;
-        } else if interpreter.is_line_comment(interpreter.index) {
+        } else if is_line_comment(interpreter, interpreter.index) {
             //line comment
-            items.push(interpreter.handle_document_item(BqsqlDocumentItemType::LineComment));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::LineComment,
+            ));
             continue;
         } else if let Some(operator) = get_relevant_operators_all_match(interpreter) {
             let mut index: usize = 0;
             let len = operator.to_vec().len();
             while index < len {
-                items.push(interpreter.handle_document_item(BqsqlDocumentItemType::Operator));
+                items.push(handle_document_item(
+                    interpreter,
+                    BqsqlDocumentItemType::Operator,
+                ));
                 index += 1;
             }
             continue;
@@ -330,31 +382,31 @@ fn loop_query_default(
 }
 
 fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
-    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
+    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
 }
 
 fn document_item_handler_select(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
-    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::As) {
-        return interpreter.handle_document_item(BqsqlDocumentItemType::Alias);
+    if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
+        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias);
     }
 
-    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
+    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
 }
 
 fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
-    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::With)
-        || interpreter.is_delimiter(interpreter.index - 1, BqsqlDelimiter::Comma)
+    if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::With)
+        || is_delimiter(interpreter, interpreter.index - 1, BqsqlDelimiter::Comma)
     {
-        return interpreter.handle_document_item(BqsqlDocumentItemType::QueryCteName);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::QueryCteName);
     }
-    if interpreter.is_keyword(interpreter.index, BqsqlKeyword::As) {
-        return interpreter.handle_document_item(BqsqlDocumentItemType::KeywordAs);
+    if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
+        return handle_document_item(interpreter, BqsqlDocumentItemType::KeywordAs);
     }
-    if interpreter.is_keyword(interpreter.index - 1, BqsqlKeyword::As) {
-        return interpreter.handle_document_item(BqsqlDocumentItemType::Alias);
+    if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
+        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias);
     }
 
-    interpreter.handle_document_item(BqsqlDocumentItemType::Unknown)
+    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
 }
 
 fn continue_loop_query(
@@ -362,14 +414,14 @@ fn continue_loop_query(
     subsequent_query_structure: &Vec<BqsqlQueryStructure>,
     count_open_parentheses: usize,
 ) -> bool {
-    if interpreter.is_in_range(interpreter.index) {
+    if is_in_range(interpreter, interpreter.index) {
         //;
-        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::Semicolon) {
+        if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::Semicolon) {
             return false;
         }
 
         //parentheses close
-        if interpreter.is_delimiter(interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+        if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::ParenthesesClose) {
             if count_open_parentheses == 0 {
                 return false;
             }

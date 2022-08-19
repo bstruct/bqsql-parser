@@ -3,7 +3,7 @@ use regex::Regex;
 
 use super::{
     bqsql_delimiter::BqsqlDelimiter, bqsql_keyword::BqsqlKeyword, bqsql_operator::BqsqlOperator,
-    bqsql_query_structure::BqsqlQueryStructure, BqsqlDocumentItem, BqsqlDocumentItemType,
+    bqsql_query_structure::BqsqlQueryStructure, BqsqlDocumentItem, BqsqlDocumentItemType, BqsqlDocumentSuggestion,
 };
 use crate::bqsql_document::token_parser;
 
@@ -58,37 +58,6 @@ impl BqsqlInterpreter<'_> {
         }
         None
     }
-
-    // pub(crate) fn handle_keyword(&mut self, keyword: BqsqlKeyword) -> Option<BqsqlDocumentItem> {
-    //     if self.is_keyword(self.index, keyword) {
-    //         return self.handle_string(BqsqlDocumentItemType::Keyword, keyword.as_str());
-    //     }
-    //     None
-    // }
-
-    // pub(crate) fn handle_delimiter(
-    //     &mut self,
-    //     delimiter: BqsqlDelimiter,
-    // ) -> Option<BqsqlDocumentItem> {
-    //     if self.is_delimiter(self.index, delimiter) {
-    //         let item_type: BqsqlDocumentItemType = delimiter.get_item_type();
-    //         return self.handle_string(item_type, delimiter.as_str());
-    //     }
-    //     None
-    // }
-
-    // pub(crate) fn handle_string(
-    //     &mut self,
-    //     item_type: BqsqlDocumentItemType,
-    //     comp: &str,
-    // ) -> Option<BqsqlDocumentItem> {
-    //     if let Some(string_in_range) = self.get_string_in_range(self.index) {
-    //         if string_in_range == comp {
-    //             return self.handle_document_item(item_type);
-    //         }
-    //     }
-    //     None
-    // }
 
     pub(crate) fn handle_unknown(&mut self) -> Option<BqsqlDocumentItem> {
         if self.is_in_range(self.index) {
@@ -165,6 +134,12 @@ impl BqsqlInterpreter<'_> {
 
         items
     }
+
+    pub(crate) fn suggest(bqsql: &str, line: usize, column: usize) -> Vec<BqsqlDocumentSuggestion> {
+        
+        todo!()
+    }
+
 }
 
 pub(crate) fn is_number(interpreter: &BqsqlInterpreter) -> bool {

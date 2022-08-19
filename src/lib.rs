@@ -17,6 +17,13 @@ pub fn parse(bqsql: &str) -> JsValue {
 }
 
 #[wasm_bindgen]
+pub fn suggest(bqsql: &str, line: usize, column: usize) -> JsValue {
+    let document = BqsqlDocument::suggest(bqsql, line, column);
+
+    todo!()
+}
+
+#[wasm_bindgen]
 pub fn get_all_functions() -> JsValue {
     serde_wasm_bindgen::to_value(&BqsqlFunction::get_all()).unwrap()
 }

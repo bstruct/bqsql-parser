@@ -73,6 +73,16 @@ pub enum BqsqlDocumentItemType {
     QueryOffset,
 }
 
+pub struct BqsqlDocumentSuggestion {
+    pub suggestion_type: BqsqlDocumentSuggestionType,
+    
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum BqsqlDocumentSuggestionType {
+    Unknown,
+}
+
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
     fn eq(&self, other: &&BqsqlDocumentItemType) -> bool {
         self.eq(other)
@@ -87,4 +97,9 @@ impl BqsqlDocument {
             items: bqsql_interpreter.collect(),
         }
     }
+
+    pub(crate) fn suggest(bqsql: &str, line: usize, column: usize) -> Vec<BqsqlDocumentSuggestion> {
+        BqsqlInterpreter::suggest(bqsql, line, column)
+    }
+    
 }

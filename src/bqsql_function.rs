@@ -92,8 +92,6 @@ impl BqsqlFunction {
             name: "SUM",
             snippet: "SUM(x) AS sum,",
             url: "https://cloud.google.com/bigquery/docs/reference/standard-sql/aggregate_functions#sum"
-        }
-        
-        ]
+        }]
     }
 }

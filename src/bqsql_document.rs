@@ -3,11 +3,12 @@ use serde::Serialize;
 use self::bqsql_interpreter::BqsqlInterpreter;
 
 pub mod bqsql_delimiter;
+pub mod bqsql_interpreter;
+pub mod bqsql_interpreter_query;
 pub mod bqsql_interpreter_query_from_test;
 pub mod bqsql_interpreter_query_full_test;
 pub mod bqsql_interpreter_query_select_test;
-pub mod bqsql_interpreter_query;
-pub mod bqsql_interpreter;
+pub mod bqsql_interpreter_suggest;
 pub mod bqsql_keyword;
 pub mod bqsql_operator;
 pub mod bqsql_query_structure;
@@ -60,7 +61,6 @@ pub enum BqsqlDocumentItemType {
     QuerySelectListItem,
     // QuerySelectStar,
     // QuerySelectColumnName,
-
     QueryFrom,
     QueryWhere,
     QueryGroupBy,
@@ -73,14 +73,16 @@ pub enum BqsqlDocumentItemType {
     QueryOffset,
 }
 
+#[derive(Serialize, Clone)]
 pub struct BqsqlDocumentSuggestion {
     pub suggestion_type: BqsqlDocumentSuggestionType,
-    
+    pub name: String,
+    pub snippet: String,
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BqsqlDocumentSuggestionType {
-    Unknown,
+    Syntax,
 }
 
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
@@ -98,8 +100,7 @@ impl BqsqlDocument {
         }
     }
 
-    pub(crate) fn suggest(bqsql: &str, line: usize, column: usize) -> Vec<BqsqlDocumentSuggestion> {
-        BqsqlInterpreter::suggest(bqsql, line, column)
+    pub(crate) fn suggest(bqsql: &str, position: [usize; 2]) -> Vec<BqsqlDocumentSuggestion> {
+        BqsqlInterpreter::suggest(bqsql, position)
     }
-    
 }

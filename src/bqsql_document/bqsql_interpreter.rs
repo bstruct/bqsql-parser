@@ -32,10 +32,7 @@ impl BqsqlInterpreter<'_> {
 
         while self.tokens.len() > self.index {
             if is_line_comment(self, self.index) {
-                items.push(
-                    handle_document_item(self, BqsqlDocumentItemType::LineComment)
-                        .unwrap(),
-                );
+                items.push(handle_document_item(self, BqsqlDocumentItemType::LineComment).unwrap());
             }
 
             if let Some(query) = self.handle_query() {
@@ -55,11 +52,6 @@ impl BqsqlInterpreter<'_> {
 
         items
     }
-
-    pub(crate) fn suggest(bqsql: &str, line: usize, column: usize) -> Vec<BqsqlDocumentSuggestion> {
-        todo!()
-    }
-    
 }
 
 pub(crate) fn is_keyword(

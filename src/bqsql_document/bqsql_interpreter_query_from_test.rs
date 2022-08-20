@@ -100,7 +100,6 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- --- --- --- --- QueryCteName
     //--- --- --- --- --- ParenthesesClose
 
-
     //--- --- --- QuerySelect
     //--- --- --- --- Keyword
     //--- --- --- --- QuerySelectListItem
@@ -352,7 +351,10 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
     //--- --- --- --- --- ParenthesesClose
 
     //--- --- --- QuerySelect
-    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_f.items[1].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelect,
+        query_f.items[1].item_type
+    );
     assert_eq!(None, query_f.items[1].range);
     assert_eq!(2, query_f.items[1].items.len());
 

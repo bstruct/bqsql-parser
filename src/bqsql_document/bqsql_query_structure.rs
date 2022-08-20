@@ -149,5 +149,4 @@ impl BqsqlQueryStructure {
             }
         }
     }
-
 }

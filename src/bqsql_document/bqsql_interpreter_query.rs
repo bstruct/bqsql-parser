@@ -2,8 +2,8 @@ use super::{
     bqsql_delimiter::BqsqlDelimiter,
     bqsql_interpreter::{
         self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_document_item,
-        handle_semicolon, is_delimiter, is_keyword, is_line_comment, is_number, is_string,
-        BqsqlInterpreter, is_in_range,
+        handle_semicolon, is_delimiter, is_in_range, is_keyword, is_line_comment, is_number,
+        is_string, BqsqlInterpreter,
     },
     bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
@@ -421,7 +421,11 @@ fn continue_loop_query(
         }
 
         //parentheses close
-        if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::ParenthesesClose) {
+        if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::ParenthesesClose,
+        ) {
             if count_open_parentheses == 0 {
                 return false;
             }

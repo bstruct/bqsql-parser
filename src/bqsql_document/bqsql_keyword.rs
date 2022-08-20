@@ -1,25 +1,5 @@
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) enum BqsqlKeyword {
-    All,
-    As,
-    Distinct,
-    From,
-    Recursive,
-    Select,
-    Struct,
-    Value,
-    Where,
-    With,
-    Group,
-    By,
-    Rollup,
-    Having,
-    Qualify,
-    Window,
-    Order,
-    Limit,
-    Offset,
-}
+use super::BqsqlKeyword;
+
 impl BqsqlKeyword {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {

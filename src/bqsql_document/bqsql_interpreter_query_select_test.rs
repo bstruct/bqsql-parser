@@ -1,4 +1,4 @@
-use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType};
+use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType, BqsqlKeyword};
 
 #[test]
 fn empty_string() {
@@ -397,16 +397,18 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 29, 31]), list_item_0.items[3].range);
     assert_eq!(0, list_item_0.items[3].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), list_item_0.items[3].keyword);
 
     //--- --- --- --- --- --- ALIAS
     assert_eq!(BqsqlDocumentItemType::Alias, list_item_0.items[4].item_type);
     assert_eq!(Some([0, 32, 36]), list_item_0.items[4].range);
     assert_eq!(0, list_item_0.items[4].items.len());
+    assert_eq!(None, list_item_0.items[4].keyword);
 
     //--- --- --- --- --- --- Comma
     assert_eq!(BqsqlDocumentItemType::Comma, list_item_0.items[5].item_type);
@@ -432,11 +434,12 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- KeywordAs
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         list_item_1.items[1].item_type
     );
     assert_eq!(Some([0, 47, 49]), list_item_1.items[1].range);
     assert_eq!(0, list_item_1.items[1].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), list_item_1.items[1].keyword);
 
     //--- --- --- --- --- --- ALIAS
     assert_eq!(BqsqlDocumentItemType::Alias, list_item_1.items[2].item_type);
@@ -453,11 +456,12 @@ fn select_select_as_struct_query() {
 
     //--- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         query_list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 58, 60]), query_list_item_0.items[3].range);
     assert_eq!(0, query_list_item_0.items[3].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), query_list_item_0.items[3].keyword);
 
     //--- --- --- ALIAS
     assert_eq!(

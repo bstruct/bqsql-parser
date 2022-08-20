@@ -3,11 +3,10 @@ use super::{
     bqsql_interpreter::{
         self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_document_item,
         handle_semicolon, is_delimiter, is_in_range, is_keyword, is_line_comment, is_number,
-        is_string, BqsqlInterpreter,
+        is_string, BqsqlInterpreter, handle_unknown,
     },
-    bqsql_keyword::BqsqlKeyword,
     bqsql_query_structure::BqsqlQueryStructure,
-    BqsqlDocumentItem, BqsqlDocumentItemType,
+    BqsqlDocumentItem, BqsqlDocumentItemType, BqsqlKeyword,
 };
 
 impl BqsqlInterpreter<'_> {
@@ -196,7 +195,7 @@ fn handle_query_stage(
             return handle_query_stage_default(
                 interpreter,
                 query_stage,
-                document_item_handler_unknown,
+                handle_unknown,
             );
         }
     };
@@ -249,11 +248,13 @@ fn handle_query_keywords(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::LineComment,
+                None,
             ));
         } else {
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::Keyword,
+                Some(keywords_match[matched]),
             ));
             matched += 1;
         }
@@ -286,6 +287,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::ParenthesesOpen,
+                None,
             ));
             count_open_parentheses += 1;
             continue;
@@ -298,6 +300,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::ParenthesesClose,
+                None,
             ));
             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
             continue;
@@ -310,6 +313,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::SquareBracketsOpen,
+                None,
             ));
             count_open_square_brackets += 1;
             continue;
@@ -322,6 +326,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::SquareBracketsClose,
+                None,
             ));
             count_open_square_brackets = std::cmp::max(0, count_open_square_brackets - 1);
             continue;
@@ -330,6 +335,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::Comma,
+                None,
             ));
             continue;
         } else if is_query(interpreter) {
@@ -340,6 +346,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::Number,
+                None,
             ));
             continue;
         } else if is_string(interpreter, interpreter.index) {
@@ -347,12 +354,14 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::String,
+                None,
             ));
             continue;
         } else if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
             items.push(handle_document_item(
                 interpreter,
-                BqsqlDocumentItemType::KeywordAs,
+                BqsqlDocumentItemType::Keyword,
+                Some(BqsqlKeyword::As),
             ));
             continue;
         } else if is_line_comment(interpreter, interpreter.index) {
@@ -360,6 +369,7 @@ fn loop_query_default(
             items.push(handle_document_item(
                 interpreter,
                 BqsqlDocumentItemType::LineComment,
+                None,
             ));
             continue;
         } else if let Some(operator) = get_relevant_operators_all_match(interpreter) {
@@ -369,6 +379,7 @@ fn loop_query_default(
                 items.push(handle_document_item(
                     interpreter,
                     BqsqlDocumentItemType::Operator,
+                    None,
                 ));
                 index += 1;
             }
@@ -381,32 +392,32 @@ fn loop_query_default(
     items
 }
 
-fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
-    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
-}
+// fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+//     handle_document_item(interpreter, BqsqlDocumentItemType::Unknown, None)
+// }
 
 fn document_item_handler_select(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias, None);
     }
 
-    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
+    handle_unknown(interpreter)
 }
 
 fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::With)
         || is_delimiter(interpreter, interpreter.index - 1, BqsqlDelimiter::Comma)
     {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::QueryCteName);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::QueryCteName, None);
     }
     if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::KeywordAs);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::Keyword, Some(BqsqlKeyword::As));
     }
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::Alias, None);
     }
 
-    handle_document_item(interpreter, BqsqlDocumentItemType::Unknown)
+    handle_unknown(interpreter)
 }
 
 fn continue_loop_query(
@@ -536,7 +547,7 @@ fn handle_query_stage_select_split_list_1_items_no_delimiters() {
     let items = &loop_query_default(
         &mut interpreter,
         subsequent_query_structure,
-        document_item_handler_unknown,
+        handle_unknown,
     );
 
     let split = handle_query_stage_select_split_list_items(items);
@@ -555,7 +566,7 @@ fn handle_query_stage_select_split_list_1_items_delimiters() {
     let items = &loop_query_default(
         &mut interpreter,
         subsequent_query_structure,
-        document_item_handler_unknown,
+        handle_unknown,
     );
 
     let split = handle_query_stage_select_split_list_items(items);
@@ -574,7 +585,7 @@ fn handle_query_stage_select_split_list_5_items_no_delimiters() {
     let items = &loop_query_default(
         &mut interpreter,
         subsequent_query_structure,
-        document_item_handler_unknown,
+        handle_unknown,
     );
 
     let split = handle_query_stage_select_split_list_items(items);
@@ -600,7 +611,7 @@ fn handle_query_stage_select_split_list_3_items_delimiters() {
     let items = &loop_query_default(
         &mut interpreter,
         subsequent_query_structure,
-        document_item_handler_unknown,
+        handle_unknown,
     );
 
     assert_eq!(13, items.len());
@@ -626,7 +637,7 @@ fn handle_query_stage_select_split_list_3_items_delimiters_square() {
     let items = &loop_query_default(
         &mut interpreter,
         subsequent_query_structure,
-        document_item_handler_unknown,
+        handle_unknown,
     );
 
     assert_eq!(13, items.len());

@@ -2,9 +2,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use super::{
-    bqsql_delimiter::BqsqlDelimiter, bqsql_keyword::BqsqlKeyword, bqsql_operator::BqsqlOperator,
+    bqsql_delimiter::BqsqlDelimiter, bqsql_operator::BqsqlOperator,
     bqsql_query_structure::BqsqlQueryStructure, BqsqlDocumentItem, BqsqlDocumentItemType,
-    BqsqlDocumentSuggestion,
+    BqsqlDocumentSuggestion, BqsqlKeyword,
 };
 use crate::bqsql_document::token_parser;
 
@@ -32,7 +32,7 @@ impl BqsqlInterpreter<'_> {
 
         while self.tokens.len() > self.index {
             if is_line_comment(self, self.index) {
-                items.push(handle_document_item(self, BqsqlDocumentItemType::LineComment).unwrap());
+                items.push(handle_document_item(self, BqsqlDocumentItemType::LineComment, None).unwrap());
             }
 
             if let Some(query) = self.handle_query() {
@@ -114,12 +114,14 @@ if return a BqsqlDocumentItem, moves the index by 1 */
 pub(crate) fn handle_document_item(
     interpreter: &mut BqsqlInterpreter,
     item_type: BqsqlDocumentItemType,
+    keyword: Option<BqsqlKeyword>
 ) -> Option<BqsqlDocumentItem> {
     if is_in_range(interpreter, interpreter.index) {
         let item = BqsqlDocumentItem {
             item_type: item_type,
             range: Some(interpreter.tokens[interpreter.index]),
             items: vec![],
+            keyword: keyword,
         };
 
         interpreter.index += 1;
@@ -135,6 +137,7 @@ pub(crate) fn handle_unknown(interpreter: &mut BqsqlInterpreter) -> Option<Bqsql
             item_type: BqsqlDocumentItemType::Unknown,
             range: Some(interpreter.tokens[interpreter.index]),
             items: vec![],
+            keyword: None,
         };
 
         interpreter.index += 1;
@@ -429,7 +432,7 @@ pub(crate) fn handle_semicolon(interpreter: &mut BqsqlInterpreter) -> Option<Bqs
     //do not accept comments in the beginning
     if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
         if string_in_range == ";" {
-            return handle_document_item(interpreter, BqsqlDocumentItemType::Semicolon);
+            return handle_document_item(interpreter, BqsqlDocumentItemType::Semicolon, None);
         }
     }
 
@@ -447,6 +450,7 @@ impl BqsqlDocumentItem {
             item_type: item_type,
             range: None,
             items: items,
+            keyword: None,
         }
     }
 }

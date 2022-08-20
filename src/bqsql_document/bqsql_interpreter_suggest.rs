@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use crate::bqsql_document::{BqsqlDocumentItemType, BqsqlDocumentSuggestionType};
 
 use super::{bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentItem, BqsqlDocumentSuggestion};
@@ -10,10 +8,62 @@ impl BqsqlInterpreter<'_> {
         let flat_items = &flat_document(document_items);
         let location_in_document = locate_in_document(flat_items, position);
 
-        // flat_items.index(index)
+        let mut suggestions = Vec::new();
+        suggestions.append(&mut suggest_syntax(flat_items, location_in_document));
+        // suggestions.append(&mut suggest_functions(flat_items, location_in_document));
+        // suggestions.append(&mut suggest_columns(flat_items, location_in_document));
 
-        todo!()
+        suggestions
     }
+}
+
+fn suggest_syntax(flat_items: &Vec<&BqsqlDocumentItem>, location_in_document: (LocationInDocumentType, Option<usize>)) -> Vec<BqsqlDocumentSuggestion> {
+
+    let mut suggestions : Vec<BqsqlDocumentSuggestion> = Vec::new();
+
+    if location_in_document.0 == LocationInDocumentType::After {
+        if let Some(index) = location_in_document.1{
+
+            if flat_items[index].item_type == BqsqlDocumentItemType::Keyword{
+
+
+                
+            } 
+            
+        }
+    }
+
+    suggestions
+}
+
+#[test]
+fn suggest_nothing() {
+    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 3]);
+
+    assert_eq!(0, suggestions.len());
+}
+
+#[test]
+fn suggest_except_from() {
+    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 9]);
+
+    assert_eq!(2, suggestions.len());
+
+    //EXCEPT
+    assert_eq!(
+        BqsqlDocumentSuggestionType::Syntax,
+        suggestions[0].suggestion_type
+    );
+    assert_eq!("EXCEPT", suggestions[0].name);
+    assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
+
+    //FROM
+    assert_eq!(
+        BqsqlDocumentSuggestionType::Syntax,
+        suggestions[1].suggestion_type
+    );
+    assert_eq!("FROM", suggestions[1].name);
+    assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
 }
 
 fn flat_document<'a>(document_items: &'a Vec<BqsqlDocumentItem>) -> Vec<&'a BqsqlDocumentItem> {
@@ -152,34 +202,4 @@ fn locate_in_document_after_8() {
     let item = flat_items[locate.1.unwrap()];
     assert_eq!(BqsqlDocumentItemType::Operator, item.item_type);
     assert_eq!(Some([0, 7, 8]), item.range);
-}
-
-#[test]
-fn suggest_nothing() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 3]);
-
-    assert_eq!(0, suggestions.len());
-}
-
-#[test]
-fn suggest_except_from() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 9]);
-
-    assert_eq!(2, suggestions.len());
-
-    //EXCEPT
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[0].suggestion_type
-    );
-    assert_eq!("EXCEPT", suggestions[0].name);
-    assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
-
-    //FROM
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[1].suggestion_type
-    );
-    assert_eq!("FROM", suggestions[1].name);
-    assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
 }

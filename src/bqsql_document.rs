@@ -5,8 +5,11 @@ use self::bqsql_interpreter::BqsqlInterpreter;
 pub mod bqsql_delimiter;
 pub mod bqsql_interpreter;
 pub mod bqsql_interpreter_query;
+#[cfg(test)]
 pub mod bqsql_interpreter_query_from_test;
+#[cfg(test)]
 pub mod bqsql_interpreter_query_full_test;
+#[cfg(test)]
 pub mod bqsql_interpreter_query_select_test;
 pub mod bqsql_interpreter_suggest;
 pub mod bqsql_keyword;
@@ -25,6 +28,7 @@ pub struct BqsqlDocumentItem {
     pub item_type: BqsqlDocumentItemType,
     pub range: Option<[usize; 3]>,
     pub items: Vec<BqsqlDocumentItem>,
+    pub keyword: Option<BqsqlKeyword>
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
@@ -32,7 +36,6 @@ pub enum BqsqlDocumentItemType {
     Unknown,
     LineComment,
     Keyword,
-    KeywordAs,
 
     String,
     Number,
@@ -71,6 +74,29 @@ pub enum BqsqlDocumentItemType {
     QueryOrderBy,
     QueryLimit,
     QueryOffset,
+}
+
+#[derive(Serialize, Debug, PartialEq, Clone, Copy)]
+pub enum BqsqlKeyword {
+    All,
+    As,
+    Distinct,
+    From,
+    Recursive,
+    Select,
+    Struct,
+    Value,
+    Where,
+    With,
+    Group,
+    By,
+    Rollup,
+    Having,
+    Qualify,
+    Window,
+    Order,
+    Limit,
+    Offset,
 }
 
 #[derive(Serialize, Clone)]

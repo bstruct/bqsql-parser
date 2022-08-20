@@ -1,4 +1,4 @@
-use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType};
+use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType, BqsqlKeyword};
 
 #[test]
 fn queries_with() {
@@ -146,11 +146,12 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //--- --- KeywordAs
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         query_with.items[2].item_type
     );
     assert_eq!(Some([0, 8, 10]), query_with.items[2].range);
     assert_eq!(0, query_with.items[2].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), query_with.items[2].keyword);
 
     //--- --- ParenthesesOpen
     assert_eq!(

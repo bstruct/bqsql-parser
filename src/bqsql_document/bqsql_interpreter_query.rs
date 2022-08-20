@@ -2,8 +2,8 @@ use super::{
     bqsql_delimiter::BqsqlDelimiter,
     bqsql_interpreter::{
         self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_document_item,
-        handle_semicolon, is_delimiter, is_in_range, is_keyword, is_line_comment, is_number,
-        is_string, BqsqlInterpreter, handle_unknown,
+        handle_semicolon, handle_unknown, is_delimiter, is_in_range, is_keyword, is_line_comment,
+        is_number, is_string, BqsqlInterpreter,
     },
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType, BqsqlKeyword,
@@ -192,11 +192,7 @@ fn handle_query_stage(
             return handle_query_stage_select(interpreter, document_item_handler_select);
         }
         _ => {
-            return handle_query_stage_default(
-                interpreter,
-                query_stage,
-                handle_unknown,
-            );
+            return handle_query_stage_default(interpreter, query_stage, handle_unknown);
         }
     };
 }
@@ -411,7 +407,11 @@ fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
         return handle_document_item(interpreter, BqsqlDocumentItemType::QueryCteName, None);
     }
     if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::Keyword, Some(BqsqlKeyword::As));
+        return handle_document_item(
+            interpreter,
+            BqsqlDocumentItemType::Keyword,
+            Some(BqsqlKeyword::As),
+        );
     }
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
         return handle_document_item(interpreter, BqsqlDocumentItemType::Alias, None);
@@ -484,12 +484,14 @@ fn handle_query_stage_select(
 
         //break new_items per significant (not between brackets) comma
         for list_items in handle_query_stage_select_split_list_items(&new_items) {
-            let i = BqsqlDocumentItem::new(
-                BqsqlDocumentItemType::QuerySelectListItem,
-                list_items.to_vec(),
-            );
+            if list_items.len() > 0 {
+                let i = BqsqlDocumentItem::new(
+                    BqsqlDocumentItemType::QuerySelectListItem,
+                    list_items.to_vec(),
+                );
 
-            items.push(Some(i));
+                items.push(Some(i));
+            }
         }
 
         return Some(BqsqlDocumentItem::new(
@@ -544,11 +546,7 @@ fn handle_query_stage_select_split_list_1_items_no_delimiters() {
 
     let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let items = &loop_query_default(
-        &mut interpreter,
-        subsequent_query_structure,
-        handle_unknown,
-    );
+    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
     let split = handle_query_stage_select_split_list_items(items);
 
@@ -563,11 +561,7 @@ fn handle_query_stage_select_split_list_1_items_delimiters() {
 
     let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let items = &loop_query_default(
-        &mut interpreter,
-        subsequent_query_structure,
-        handle_unknown,
-    );
+    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
     let split = handle_query_stage_select_split_list_items(items);
 
@@ -582,11 +576,7 @@ fn handle_query_stage_select_split_list_5_items_no_delimiters() {
 
     let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let items = &loop_query_default(
-        &mut interpreter,
-        subsequent_query_structure,
-        handle_unknown,
-    );
+    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
     let split = handle_query_stage_select_split_list_items(items);
 
@@ -608,11 +598,7 @@ fn handle_query_stage_select_split_list_3_items_delimiters() {
 
     let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let items = &loop_query_default(
-        &mut interpreter,
-        subsequent_query_structure,
-        handle_unknown,
-    );
+    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
     assert_eq!(13, items.len());
 
@@ -634,11 +620,7 @@ fn handle_query_stage_select_split_list_3_items_delimiters_square() {
 
     let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let items = &loop_query_default(
-        &mut interpreter,
-        subsequent_query_structure,
-        handle_unknown,
-    );
+    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
     assert_eq!(13, items.len());
 

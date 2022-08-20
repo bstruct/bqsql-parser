@@ -32,7 +32,9 @@ impl BqsqlInterpreter<'_> {
 
         while self.tokens.len() > self.index {
             if is_line_comment(self, self.index) {
-                items.push(handle_document_item(self, BqsqlDocumentItemType::LineComment, None).unwrap());
+                items.push(
+                    handle_document_item(self, BqsqlDocumentItemType::LineComment, None).unwrap(),
+                );
             }
 
             if let Some(query) = self.handle_query() {
@@ -114,7 +116,7 @@ if return a BqsqlDocumentItem, moves the index by 1 */
 pub(crate) fn handle_document_item(
     interpreter: &mut BqsqlInterpreter,
     item_type: BqsqlDocumentItemType,
-    keyword: Option<BqsqlKeyword>
+    keyword: Option<BqsqlKeyword>,
 ) -> Option<BqsqlDocumentItem> {
     if is_in_range(interpreter, interpreter.index) {
         let item = BqsqlDocumentItem {

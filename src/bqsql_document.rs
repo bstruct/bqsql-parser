@@ -28,7 +28,7 @@ pub struct BqsqlDocumentItem {
     pub item_type: BqsqlDocumentItemType,
     pub range: Option<[usize; 3]>,
     pub items: Vec<BqsqlDocumentItem>,
-    pub keyword: Option<BqsqlKeyword>
+    pub keyword: Option<BqsqlKeyword>,
 }
 
 #[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]

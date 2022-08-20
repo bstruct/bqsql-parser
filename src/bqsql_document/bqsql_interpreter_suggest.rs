@@ -1,40 +1,67 @@
 use crate::bqsql_document::{BqsqlDocumentItemType, BqsqlDocumentSuggestionType};
 
-use super::{bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentItem, BqsqlDocumentSuggestion};
+use super::{
+    bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentItem, BqsqlDocumentSuggestion, BqsqlKeyword,
+};
 
 impl BqsqlInterpreter<'_> {
-    pub(crate) fn suggest(bqsql: &str, position: [usize; 2]) -> Vec<BqsqlDocumentSuggestion> {
-        let document_items = &BqsqlInterpreter::new(bqsql).collect();
-        let flat_items = &flat_document(document_items);
-        let location_in_document = locate_in_document(flat_items, position);
+    pub(crate) fn suggest(_bqsql: &str, _position: [usize; 2]) -> Vec<BqsqlDocumentSuggestion> {
+        // let document_items = &BqsqlInterpreter::new(bqsql).collect();
+        // let flat_items = &flat_document(document_items);
+        // let location_in_document = locate_in_document(flat_items, position);
 
-        let mut suggestions = Vec::new();
-        suggestions.append(&mut suggest_syntax(flat_items, location_in_document));
+        // let mut suggestions = Vec::new();
+        // suggestions.append(&mut suggest_syntax(flat_items, location_in_document));
         // suggestions.append(&mut suggest_functions(flat_items, location_in_document));
         // suggestions.append(&mut suggest_columns(flat_items, location_in_document));
 
-        suggestions
+        // suggestions
+        Vec::new()
     }
 }
 
-fn suggest_syntax(flat_items: &Vec<&BqsqlDocumentItem>, location_in_document: (LocationInDocumentType, Option<usize>)) -> Vec<BqsqlDocumentSuggestion> {
+// fn suggest_syntax(
+//     flat_items: &Vec<&BqsqlDocumentItem>,
+//     location_in_document: (LocationInDocumentType, Option<usize>),
+// ) -> Vec<BqsqlDocumentSuggestion> {
+//     let mut suggestions: Vec<BqsqlDocumentSuggestion> = Vec::new();
 
-    let mut suggestions : Vec<BqsqlDocumentSuggestion> = Vec::new();
+//     if location_in_document.0 == LocationInDocumentType::After {
+//         if let Some(index) = location_in_document.1 {
+//             if let Some(previous_index) = get_previous_significant_index(flat_items, index) {
+//                 let previous_item = flat_items[previous_index];
+//                 if previous_item.item_type == BqsqlDocumentItemType::Keyword {
+//                     if let Some(keyword) = previous_item.keyword {
+//                         if keyword == BqsqlKeyword::Select {
+//                             suggestions.push(BqsqlDocumentSuggestion {
+//                                 suggestion_type: BqsqlDocumentSuggestionType::Syntax,
+//                                 name: String::from(""),
+//                                 snippet: String::from(""),
+//                             });
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
 
-    if location_in_document.0 == LocationInDocumentType::After {
-        if let Some(index) = location_in_document.1{
+//     suggestions
+// }
 
-            if flat_items[index].item_type == BqsqlDocumentItemType::Keyword{
+// fn get_previous_significant_index(
+//     flat_items: &Vec<&BqsqlDocumentItem>,
+//     index: usize,
+// ) -> Option<usize> {
+//     let mut i: usize = index;
+//     while i > 0 {
+//         i -= 1;
+//         if flat_items[i].item_type != BqsqlDocumentItemType::LineComment {
+//             return Some(i);
+//         }
+//     }
 
-
-                
-            } 
-            
-        }
-    }
-
-    suggestions
-}
+//     None
+// }
 
 #[test]
 fn suggest_nothing() {
@@ -44,8 +71,41 @@ fn suggest_nothing() {
 }
 
 #[test]
+#[ignore = "not ready yet"]
+fn suggest_nothing_after_comment() {
+    let suggestions = BqsqlInterpreter::suggest("SELECT * --test comment ", [0, 24]);
+
+    assert_eq!(0, suggestions.len());
+}
+
+#[test]
+#[ignore = "not ready yet"]
 fn suggest_except_from() {
     let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 9]);
+
+    assert_eq!(2, suggestions.len());
+
+    //EXCEPT
+    assert_eq!(
+        BqsqlDocumentSuggestionType::Syntax,
+        suggestions[0].suggestion_type
+    );
+    assert_eq!("EXCEPT", suggestions[0].name);
+    assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
+
+    //FROM
+    assert_eq!(
+        BqsqlDocumentSuggestionType::Syntax,
+        suggestions[1].suggestion_type
+    );
+    assert_eq!("FROM", suggestions[1].name);
+    assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
+}
+
+#[test]
+#[ignore = "not ready yet"]
+fn suggest_except_from_after_comment() {
+    let suggestions = BqsqlInterpreter::suggest("SELECT * --comment\n", [1, 0]);
 
     assert_eq!(2, suggestions.len());
 

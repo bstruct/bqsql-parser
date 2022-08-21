@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use crate::bqsql_function::BqsqlFunctionSnippet;
+
 use self::bqsql_interpreter::BqsqlInterpreter;
 
 pub mod bqsql_delimiter;
@@ -128,22 +130,29 @@ pub enum BqsqlKeyword {
     Using,
 }
 
-#[derive(Serialize, Clone)]
-pub struct BqsqlDocumentSuggestion {
-    pub suggestion_type: BqsqlDocumentSuggestionType,
-    pub name: String,
-    pub snippet: String,
-}
-
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
     fn eq(&self, other: &&BqsqlDocumentItemType) -> bool {
         self.eq(other)
     }
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Clone)]
+pub struct BqsqlDocumentSuggestion {
+    pub suggestion_type: BqsqlDocumentSuggestionType,
+    pub table_identifier: Option<BqsqlDocumentItem>,
+    pub snippets: Option<Vec<BqsqlFunctionSnippet>>,
+}
+
+#[derive(Serialize, Debug, PartialEq, Clone, Copy)]
 pub enum BqsqlDocumentSuggestionType {
-    Syntax,
+    TableColumns,
+    Function,
+}
+
+impl PartialEq<&BqsqlDocumentSuggestionType> for BqsqlDocumentSuggestionType {
+    fn eq(&self, other: &&BqsqlDocumentSuggestionType) -> bool {
+        self.eq(other)
+    }
 }
 
 impl BqsqlDocument {

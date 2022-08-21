@@ -40,10 +40,19 @@ fn query_from_dataset_dot_table() {
     let query_from = &query.items[1];
     assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
     assert_eq!(None, query_from.range);
-    assert_eq!(4, query_from.items.len());
+    assert_eq!(2, query_from.items.len());
 
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
 
-    
+    let table_identifier = &query_from.items[1];
+    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(None, table_identifier.range);
+    assert_eq!(3, table_identifier.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectId, table_identifier.items[0].item_type);
+    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[1].item_type);
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierTableId, table_identifier.items[2].item_type);
+
 }
 
 #[test]
@@ -65,13 +74,24 @@ fn query_from_full_table_name() {
     let query_select = &query.items[0];
     assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
     assert_eq!(None, query_select.range);
-    assert_eq!(5, query_select.items.len());
+    assert_eq!(4, query_select.items.len());
 
     //--- QueryFrom
     let query_from = &query.items[1];
     assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
     assert_eq!(None, query_from.range);
     assert_eq!(2, query_from.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+
+    let table_identifier = &query_from.items[1];
+    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(None, table_identifier.range);
+    assert_eq!(1, table_identifier.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId, table_identifier.items[0].item_type);
+
+
 }
 
 #[test]
@@ -93,13 +113,27 @@ fn query_from_project_in_quotes() {
     let query_select = &query.items[0];
     assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
     assert_eq!(None, query_select.range);
-    assert_eq!(5, query_select.items.len());
+    assert_eq!(4, query_select.items.len());
 
     //--- QueryFrom
     let query_from = &query.items[1];
     assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
     assert_eq!(None, query_from.range);
-    assert_eq!(6, query_from.items.len());
+    assert_eq!(2, query_from.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+
+    let table_identifier = &query_from.items[1];
+    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(None, table_identifier.range);
+    assert_eq!(5, table_identifier.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectId, table_identifier.items[0].item_type);
+    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[1].item_type);
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierDatasetId, table_identifier.items[2].item_type);
+    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[3].item_type);
+    assert_eq!(BqsqlDocumentItemType::TableIdentifierTableId, table_identifier.items[4].item_type);
+
 }
 
 #[test]
@@ -240,7 +274,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //--- --- QueryCteName
     assert_eq!(
-        BqsqlDocumentItemType::QueryCteName,
+        BqsqlDocumentItemType::TableCteId,
         query_with.items[1].item_type
     );
     assert_eq!(Some([0, 5, 7]), query_with.items[1].range);

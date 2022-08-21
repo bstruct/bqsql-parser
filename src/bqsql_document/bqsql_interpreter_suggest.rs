@@ -1,8 +1,4 @@
-use crate::bqsql_document::{BqsqlDocumentItemType, BqsqlDocumentSuggestionType};
-
-use super::{
-    bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentItem, BqsqlDocumentSuggestion, BqsqlKeyword,
-};
+use super::{bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentItem, BqsqlDocumentSuggestion};
 
 impl BqsqlInterpreter<'_> {
     pub(crate) fn suggest(_bqsql: &str, _position: [usize; 2]) -> Vec<BqsqlDocumentSuggestion> {
@@ -63,67 +59,72 @@ impl BqsqlInterpreter<'_> {
 //     None
 // }
 
-#[test]
-fn suggest_nothing() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 3]);
+#[cfg(test)]
+mod tests {
+    use crate::bqsql_document::{bqsql_interpreter::BqsqlInterpreter, BqsqlDocumentSuggestionType};
 
-    assert_eq!(0, suggestions.len());
-}
+    #[test]
+    fn suggest_nothing() {
+        let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 3]);
 
-#[test]
-#[ignore = "not ready yet"]
-fn suggest_nothing_after_comment() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * --test comment ", [0, 24]);
+        assert_eq!(0, suggestions.len());
+    }
 
-    assert_eq!(0, suggestions.len());
-}
+    #[test]
+    #[ignore = "not ready yet"]
+    fn suggest_nothing_after_comment() {
+        let suggestions = BqsqlInterpreter::suggest("SELECT * --test comment ", [0, 24]);
 
-#[test]
-#[ignore = "not ready yet"]
-fn suggest_except_from() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 9]);
+        assert_eq!(0, suggestions.len());
+    }
 
-    assert_eq!(2, suggestions.len());
+    #[test]
+    #[ignore = "not ready yet"]
+    fn suggest_except_from() {
+        let suggestions = BqsqlInterpreter::suggest("SELECT * ", [0, 9]);
 
-    //EXCEPT
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[0].suggestion_type
-    );
-    assert_eq!("EXCEPT", suggestions[0].name);
-    assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
+        assert_eq!(2, suggestions.len());
 
-    //FROM
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[1].suggestion_type
-    );
-    assert_eq!("FROM", suggestions[1].name);
-    assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
-}
+        //EXCEPT
+        assert_eq!(
+            BqsqlDocumentSuggestionType::Syntax,
+            suggestions[0].suggestion_type
+        );
+        assert_eq!("EXCEPT", suggestions[0].name);
+        assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
 
-#[test]
-#[ignore = "not ready yet"]
-fn suggest_except_from_after_comment() {
-    let suggestions = BqsqlInterpreter::suggest("SELECT * --comment\n", [1, 0]);
+        //FROM
+        assert_eq!(
+            BqsqlDocumentSuggestionType::Syntax,
+            suggestions[1].suggestion_type
+        );
+        assert_eq!("FROM", suggestions[1].name);
+        assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
+    }
 
-    assert_eq!(2, suggestions.len());
+    #[test]
+    #[ignore = "not ready yet"]
+    fn suggest_except_from_after_comment() {
+        let suggestions = BqsqlInterpreter::suggest("SELECT * --comment\n", [1, 0]);
 
-    //EXCEPT
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[0].suggestion_type
-    );
-    assert_eq!("EXCEPT", suggestions[0].name);
-    assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
+        assert_eq!(2, suggestions.len());
 
-    //FROM
-    assert_eq!(
-        BqsqlDocumentSuggestionType::Syntax,
-        suggestions[1].suggestion_type
-    );
-    assert_eq!("FROM", suggestions[1].name);
-    assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
+        //EXCEPT
+        assert_eq!(
+            BqsqlDocumentSuggestionType::Syntax,
+            suggestions[0].suggestion_type
+        );
+        assert_eq!("EXCEPT", suggestions[0].name);
+        assert_eq!("EXCEPT(${0:some_column}),", suggestions[0].snippet);
+
+        //FROM
+        assert_eq!(
+            BqsqlDocumentSuggestionType::Syntax,
+            suggestions[1].suggestion_type
+        );
+        assert_eq!("FROM", suggestions[1].name);
+        assert_eq!("FROM ${0:some_table}", suggestions[1].snippet);
+    }
 }
 
 fn flat_document<'a>(document_items: &'a Vec<BqsqlDocumentItem>) -> Vec<&'a BqsqlDocumentItem> {
@@ -139,12 +140,19 @@ fn flat_document<'a>(document_items: &'a Vec<BqsqlDocumentItem>) -> Vec<&'a Bqsq
     flat_items
 }
 
-#[test]
-fn flat_document_simple() {
-    let document_items = &BqsqlInterpreter::new("SELECT 1,2,3,4,5 FROM t").collect();
+#[cfg(test)]
+mod tests_flat_document {
+    use crate::bqsql_document::bqsql_interpreter::BqsqlInterpreter;
 
-    let flat_items = flat_document(document_items);
-    assert_eq!(20, flat_items.len())
+    use super::flat_document;
+
+    #[test]
+    fn flat_document_simple() {
+        let document_items = &BqsqlInterpreter::new("SELECT 1,2,3,4,5 FROM t").collect();
+
+        let flat_items = flat_document(document_items);
+        assert_eq!(20, flat_items.len())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -189,77 +197,86 @@ fn locate_in_document<'a>(
     (LocationInDocumentType::None, None)
 }
 
-#[test]
-fn locate_in_document_beggining() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+#[cfg(test)]
+mod tests_locate_in_document {
+    use crate::bqsql_document::{
+        bqsql_interpreter::BqsqlInterpreter,
+        bqsql_interpreter_suggest::{flat_document, locate_in_document, LocationInDocumentType},
+        BqsqlDocumentItemType,
+    };
 
-    let locate = locate_in_document(flat_items, [0, 0]);
-    assert_eq!(LocationInDocumentType::None, locate.0);
-    assert!(locate.1.is_none());
-}
+    #[test]
+    fn locate_in_document_beggining() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
 
-#[test]
-fn locate_in_document_middle_1() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+        let locate = locate_in_document(flat_items, [0, 0]);
+        assert_eq!(LocationInDocumentType::None, locate.0);
+        assert!(locate.1.is_none());
+    }
 
-    let locate = locate_in_document(flat_items, [0, 1]);
-    assert_eq!(LocationInDocumentType::Middle, locate.0);
-    assert!(locate.1.is_some());
-    let item = flat_items[locate.1.unwrap()];
-    assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
-    assert_eq!(Some([0, 0, 6]), item.range);
-}
+    #[test]
+    fn locate_in_document_middle_1() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
 
-#[test]
-fn locate_in_document_middle_3() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+        let locate = locate_in_document(flat_items, [0, 1]);
+        assert_eq!(LocationInDocumentType::Middle, locate.0);
+        assert!(locate.1.is_some());
+        let item = flat_items[locate.1.unwrap()];
+        assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
+        assert_eq!(Some([0, 0, 6]), item.range);
+    }
 
-    let locate = locate_in_document(flat_items, [0, 3]);
-    assert_eq!(LocationInDocumentType::Middle, locate.0);
-    assert!(locate.1.is_some());
-    let item = flat_items[locate.1.unwrap()];
-    assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
-    assert_eq!(Some([0, 0, 6]), item.range);
-}
+    #[test]
+    fn locate_in_document_middle_3() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
 
-#[test]
-fn locate_in_document_after_6() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+        let locate = locate_in_document(flat_items, [0, 3]);
+        assert_eq!(LocationInDocumentType::Middle, locate.0);
+        assert!(locate.1.is_some());
+        let item = flat_items[locate.1.unwrap()];
+        assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
+        assert_eq!(Some([0, 0, 6]), item.range);
+    }
 
-    let locate = locate_in_document(flat_items, [0, 6]);
-    assert_eq!(LocationInDocumentType::After, locate.0);
-    assert!(locate.1.is_some());
-    let item = flat_items[locate.1.unwrap()];
-    assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
-    assert_eq!(Some([0, 0, 6]), item.range);
-}
+    #[test]
+    fn locate_in_document_after_6() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
 
-#[test]
-fn locate_in_document_after_7() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+        let locate = locate_in_document(flat_items, [0, 6]);
+        assert_eq!(LocationInDocumentType::After, locate.0);
+        assert!(locate.1.is_some());
+        let item = flat_items[locate.1.unwrap()];
+        assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
+        assert_eq!(Some([0, 0, 6]), item.range);
+    }
 
-    let locate = locate_in_document(flat_items, [0, 7]);
-    assert_eq!(LocationInDocumentType::After, locate.0);
-    assert!(locate.1.is_some());
-    let item = flat_items[locate.1.unwrap()];
-    assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
-    assert_eq!(Some([0, 0, 6]), item.range);
-}
+    #[test]
+    fn locate_in_document_after_7() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
 
-#[test]
-fn locate_in_document_after_8() {
-    let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
-    let flat_items = &flat_document(document_items);
+        let locate = locate_in_document(flat_items, [0, 7]);
+        assert_eq!(LocationInDocumentType::After, locate.0);
+        assert!(locate.1.is_some());
+        let item = flat_items[locate.1.unwrap()];
+        assert_eq!(BqsqlDocumentItemType::Keyword, item.item_type);
+        assert_eq!(Some([0, 0, 6]), item.range);
+    }
 
-    let locate = locate_in_document(flat_items, [0, 8]);
-    assert_eq!(LocationInDocumentType::After, locate.0);
-    assert!(locate.1.is_some());
-    let item = flat_items[locate.1.unwrap()];
-    assert_eq!(BqsqlDocumentItemType::Operator, item.item_type);
-    assert_eq!(Some([0, 7, 8]), item.range);
+    #[test]
+    fn locate_in_document_after_8() {
+        let document_items = &BqsqlInterpreter::new("SELECT * ").collect();
+        let flat_items = &flat_document(document_items);
+
+        let locate = locate_in_document(flat_items, [0, 8]);
+        assert_eq!(LocationInDocumentType::After, locate.0);
+        assert!(locate.1.is_some());
+        let item = flat_items[locate.1.unwrap()];
+        assert_eq!(BqsqlDocumentItemType::Operator, item.item_type);
+        assert_eq!(Some([0, 7, 8]), item.range);
+    }
 }

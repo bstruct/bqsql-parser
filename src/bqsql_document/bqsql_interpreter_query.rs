@@ -1,9 +1,9 @@
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
     bqsql_interpreter::{
-        self, get_relevant_keywords_match, get_relevant_operators_all_match, handle_document_item,
-        handle_semicolon, handle_unknown, is_delimiter, is_in_range, is_keyword, is_line_comment,
-        is_number, is_string, BqsqlInterpreter,
+        self, get_relevant_keywords_match, get_relevant_operators_all_match, get_string_in_range,
+        handle_document_item, handle_semicolon, handle_unknown, is_delimiter, is_in_range,
+        is_keyword, is_line_comment, is_number, is_string, is_string_identifier, BqsqlInterpreter,
     },
     bqsql_query_structure::BqsqlQueryStructure,
     BqsqlDocumentItem, BqsqlDocumentItemType, BqsqlKeyword,
@@ -190,6 +190,13 @@ fn handle_query_stage(
         }
         BqsqlQueryStructure::Select => {
             return handle_query_stage_select(interpreter, document_item_handler_select);
+        }
+        BqsqlQueryStructure::From => {
+            return handle_query_stage_default(
+                interpreter,
+                query_stage,
+                document_item_handler_from,
+            );
         }
         _ => {
             return handle_query_stage_default(interpreter, query_stage, handle_unknown);
@@ -388,10 +395,6 @@ fn loop_query_default(
     items
 }
 
-// fn document_item_handler_unknown(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
-//     handle_document_item(interpreter, BqsqlDocumentItemType::Unknown, None)
-// }
-
 fn document_item_handler_select(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::As) {
         return handle_document_item(interpreter, BqsqlDocumentItemType::Alias, None);
@@ -404,7 +407,7 @@ fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::With)
         || is_delimiter(interpreter, interpreter.index - 1, BqsqlDelimiter::Comma)
     {
-        return handle_document_item(interpreter, BqsqlDocumentItemType::QueryCteName, None);
+        return handle_document_item(interpreter, BqsqlDocumentItemType::TableCteId, None);
     }
     if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
         return handle_document_item(
@@ -420,40 +423,151 @@ fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
     handle_unknown(interpreter)
 }
 
-fn continue_loop_query(
-    interpreter: &BqsqlInterpreter,
-    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
-    count_open_parentheses: usize,
-) -> bool {
-    if is_in_range(interpreter, interpreter.index) {
-        //;
-        if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::Semicolon) {
-            return false;
+fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::From) {
+        let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
+
+        let mut count_positions: usize = 0;
+        let mut index_positions: usize = interpreter.index;
+        loop {
+            count_positions += 1;
+
+            if !is_delimiter(interpreter, index_positions + 1, BqsqlDelimiter::Dot) {
+                break;
+            }
+            index_positions += 2;
         }
 
-        //parentheses close
-        if is_delimiter(
-            interpreter,
-            interpreter.index,
-            BqsqlDelimiter::ParenthesesClose,
-        ) {
-            if count_open_parentheses == 0 {
-                return false;
+        //vector to store the different identifier positions
+        // 1 value = either is string identifier or must be a CTE name
+        // 2 values = if contains string identifier can be `project_id.dataset_id`.table_id or `dataset_id`.table_id
+        //              if not contains string, must be dataset_id.table_id
+        // 3 values = must be project_id.dataset_id.table_id
+        if count_positions == 1 {
+            if is_string_identifier(interpreter, interpreter.index) {
+                if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
+                    if string_in_range.chars().filter(|c| c == &'.').count() == 1 {
+                        items.push(handle_document_item(
+                            interpreter,
+                            BqsqlDocumentItemType::TableIdentifierDatasetIdTableId,
+                            None,
+                        ));
+                    } else {
+                        items.push(handle_document_item(
+                            interpreter,
+                            BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId,
+                            None,
+                        ));
+                    }
+                }
+            } else {
+                items.push(handle_document_item(
+                    interpreter,
+                    BqsqlDocumentItemType::TableCteId,
+                    None,
+                ));
+            }
+        } else if count_positions == 2 {
+            if is_string_identifier(interpreter, interpreter.index) {
+                if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
+                    if string_in_range.contains(".") {
+                        items.push(handle_document_item(
+                            interpreter,
+                            BqsqlDocumentItemType::TableIdentifierProjectIdDatasetId,
+                            None,
+                        ));
+                    }
+                }
+            } else {
+                items.push(handle_document_item(
+                    interpreter,
+                    BqsqlDocumentItemType::TableIdentifierProjectId,
+                    None,
+                ));
+            }
+
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Dot,
+                None,
+            ));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::TableIdentifierTableId,
+                None,
+            ));
+        } else if count_positions == 3 {
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::TableIdentifierProjectId,
+                None,
+            ));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Dot,
+                None,
+            ));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::TableIdentifierDatasetId,
+                None,
+            ));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Dot,
+                None,
+            ));
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::TableIdentifierTableId,
+                None,
+            ));
+        } else {
+            return handle_unknown(interpreter);
+        }
+
+        if is_keyword(interpreter, interpreter.index, BqsqlKeyword::As) {
+            items.push(handle_document_item(
+                interpreter,
+                BqsqlDocumentItemType::Keyword,
+                Some(BqsqlKeyword::As),
+            ));
+        }
+
+        if is_in_range(interpreter, interpreter.index) {
+            if !is_inner_from_expected_keyword(interpreter, interpreter.index) {
+                items.push(handle_document_item(
+                    interpreter,
+                    BqsqlDocumentItemType::TableIdentifierAlias,
+                    None,
+                ));
             }
         }
 
-        if count_open_parentheses > 0 {
-            return true;
+        if items.len() > 0 {
+            return Some(BqsqlDocumentItem::new(
+                BqsqlDocumentItemType::TableIdentifier,
+                items,
+            ));
         }
-
-        //are any of the subsequent keywords of the query found?
-        return !subsequent_query_structure
-            .iter()
-            .map(|i| i.get_keywords())
-            .any(|i| get_relevant_keywords_match(&interpreter, &i).is_some());
     }
 
-    false
+    handle_unknown(interpreter)
+}
+
+fn is_inner_from_expected_keyword(interpreter: &BqsqlInterpreter, index: usize) -> bool {
+    is_keyword(interpreter, index, BqsqlKeyword::For)
+        || is_keyword(interpreter, index, BqsqlKeyword::Unnest)
+        || is_keyword(interpreter, index, BqsqlKeyword::Join)
+        || is_keyword(interpreter, index, BqsqlKeyword::Inner)
+        || is_keyword(interpreter, index, BqsqlKeyword::Cross)
+        || is_keyword(interpreter, index, BqsqlKeyword::Full)
+        || is_keyword(interpreter, index, BqsqlKeyword::Left)
+        || is_keyword(interpreter, index, BqsqlKeyword::Right)
+        || is_keyword(interpreter, index, BqsqlKeyword::Pivot)
+        || is_keyword(interpreter, index, BqsqlKeyword::Unpivot)
+        || is_keyword(interpreter, index, BqsqlKeyword::Tablesample)
+        || is_keyword(interpreter, index, BqsqlKeyword::Using)
 }
 
 fn handle_query_stage_select(
@@ -539,142 +653,204 @@ fn handle_query_stage_select_split_list_items<'a>(
     items_to_return
 }
 
-#[test]
-fn handle_query_stage_select_split_list_1_items_no_delimiters() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t");
-    interpreter.index = 1;
+#[cfg(test)]
+mod tests_handle_query_stage_select_split_list_items {
+    use crate::bqsql_document::{
+        bqsql_interpreter::{handle_unknown, BqsqlInterpreter},
+        bqsql_interpreter_query::{handle_query_stage_select_split_list_items, loop_query_default},
+        bqsql_query_structure::BqsqlQueryStructure,
+    };
 
-    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+    #[test]
+    fn handle_query_stage_select_split_list_1_items_no_delimiters() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t");
+        interpreter.index = 1;
 
-    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
 
-    let split = handle_query_stage_select_split_list_items(items);
+        let items =
+            &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
 
-    assert_eq!(1, split.len());
-    assert_eq!(1, split[0].len());
+        let split = handle_query_stage_select_split_list_items(items);
+
+        assert_eq!(1, split.len());
+        assert_eq!(1, split[0].len());
+    }
+
+    #[test]
+    fn handle_query_stage_select_split_list_1_items_delimiters() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT (1) FROM t");
+        interpreter.index = 1;
+
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+        let items =
+            &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+
+        let split = handle_query_stage_select_split_list_items(items);
+
+        assert_eq!(1, split.len());
+        assert_eq!(3, split[0].len());
+    }
+
+    #[test]
+    fn handle_query_stage_select_split_list_5_items_no_delimiters() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT 1,2,3,4,5+1 FROM t");
+        interpreter.index = 1;
+
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+        let items =
+            &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+
+        let split = handle_query_stage_select_split_list_items(items);
+
+        assert_eq!(5, split.len());
+        assert_eq!(2, split[0].len());
+        assert_eq!(2, split[1].len());
+        assert_eq!(2, split[2].len());
+        assert_eq!(2, split[3].len());
+        assert_eq!(3, split[4].len());
+    }
+
+    #[test]
+    fn handle_query_stage_select_split_list_3_items_delimiters() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT (1,2,3),4,5+1 FROM t");
+
+        assert_eq!(16, interpreter.tokens.len());
+
+        interpreter.index = 1;
+
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+        let items =
+            &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+
+        assert_eq!(13, items.len());
+
+        let split = handle_query_stage_select_split_list_items(items);
+
+        assert_eq!(3, split.len());
+        assert_eq!(8, split[0].len());
+        assert_eq!(2, split[1].len());
+        assert_eq!(3, split[2].len());
+    }
+
+    #[test]
+    fn handle_query_stage_select_split_list_3_items_delimiters_square() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT [1,2,3],4,5+1 FROM t");
+
+        assert_eq!(16, interpreter.tokens.len());
+
+        interpreter.index = 1;
+
+        let subsequent_query_structure =
+            &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+
+        let items =
+            &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+
+        assert_eq!(13, items.len());
+
+        let split = handle_query_stage_select_split_list_items(items);
+
+        assert_eq!(3, split.len());
+        assert_eq!(8, split[0].len());
+        assert_eq!(2, split[1].len());
+        assert_eq!(3, split[2].len());
+    }
 }
 
-#[test]
-fn handle_query_stage_select_split_list_1_items_delimiters() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT (1) FROM t");
-    interpreter.index = 1;
+fn continue_loop_query(
+    interpreter: &BqsqlInterpreter,
+    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+    count_open_parentheses: usize,
+) -> bool {
+    if is_in_range(interpreter, interpreter.index) {
+        //;
+        if is_delimiter(interpreter, interpreter.index, BqsqlDelimiter::Semicolon) {
+            return false;
+        }
 
-    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+        //parentheses close
+        if is_delimiter(
+            interpreter,
+            interpreter.index,
+            BqsqlDelimiter::ParenthesesClose,
+        ) {
+            if count_open_parentheses == 0 {
+                return false;
+            }
+        }
 
-    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+        if count_open_parentheses > 0 {
+            return true;
+        }
 
-    let split = handle_query_stage_select_split_list_items(items);
+        //are any of the subsequent keywords of the query found?
+        return !subsequent_query_structure
+            .iter()
+            .map(|i| i.get_keywords())
+            .any(|i| get_relevant_keywords_match(&interpreter, &i).is_some());
+    }
 
-    assert_eq!(1, split.len());
-    assert_eq!(3, split[0].len());
+    false
 }
 
-#[test]
-fn handle_query_stage_select_split_list_5_items_no_delimiters() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT 1,2,3,4,5+1 FROM t");
-    interpreter.index = 1;
+#[cfg(test)]
+mod tests_continue_loop_query {
+    use crate::bqsql_document::{
+        bqsql_interpreter::BqsqlInterpreter, bqsql_interpreter_query::continue_loop_query,
+        bqsql_query_structure::BqsqlQueryStructure,
+    };
 
-    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
+    #[test]
+    fn continue_loop_query_from_where_not_continue() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t WHERE 1=1");
+        interpreter.index = 4;
+        let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
 
-    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
+        assert!(!continue_loop_query(
+            &interpreter,
+            &query_stage.get_subsequent_query_structure(),
+            0
+        ));
+    }
 
-    let split = handle_query_stage_select_split_list_items(items);
+    #[test]
+    fn continue_loop_query_from_where_continue() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table WHERE 1=1");
+        interpreter.index = 4;
+        let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
 
-    assert_eq!(5, split.len());
-    assert_eq!(2, split[0].len());
-    assert_eq!(2, split[1].len());
-    assert_eq!(2, split[2].len());
-    assert_eq!(2, split[3].len());
-    assert_eq!(3, split[4].len());
-}
+        assert!(continue_loop_query(
+            &interpreter,
+            &query_stage.get_subsequent_query_structure(),
+            0
+        ));
+    }
 
-#[test]
-fn handle_query_stage_select_split_list_3_items_delimiters() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT (1,2,3),4,5+1 FROM t");
+    #[test]
+    fn continue_loop_query_from_end() {
+        let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table");
+        interpreter.index = 6;
+        let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
 
-    assert_eq!(16, interpreter.tokens.len());
+        assert!(!continue_loop_query(
+            &interpreter,
+            &query_stage.get_subsequent_query_structure(),
+            0
+        ));
+    }
 
-    interpreter.index = 1;
-
-    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
-
-    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
-
-    assert_eq!(13, items.len());
-
-    let split = handle_query_stage_select_split_list_items(items);
-
-    assert_eq!(3, split.len());
-    assert_eq!(8, split[0].len());
-    assert_eq!(2, split[1].len());
-    assert_eq!(3, split[2].len());
-}
-
-#[test]
-fn handle_query_stage_select_split_list_3_items_delimiters_square() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT [1,2,3],4,5+1 FROM t");
-
-    assert_eq!(16, interpreter.tokens.len());
-
-    interpreter.index = 1;
-
-    let subsequent_query_structure = &BqsqlQueryStructure::Select.get_subsequent_query_structure();
-
-    let items = &loop_query_default(&mut interpreter, subsequent_query_structure, handle_unknown);
-
-    assert_eq!(13, items.len());
-
-    let split = handle_query_stage_select_split_list_items(items);
-
-    assert_eq!(3, split.len());
-    assert_eq!(8, split[0].len());
-    assert_eq!(2, split[1].len());
-    assert_eq!(3, split[2].len());
-}
-
-#[test]
-fn continue_loop_query_from_where_not_continue() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM t WHERE 1=1");
-    interpreter.index = 4;
-    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
-
-    assert!(!continue_loop_query(
-        &interpreter,
-        &query_stage.get_subsequent_query_structure(),
-        0
-    ));
-}
-
-#[test]
-fn continue_loop_query_from_where_continue() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table WHERE 1=1");
-    interpreter.index = 4;
-    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
-
-    assert!(continue_loop_query(
-        &interpreter,
-        &query_stage.get_subsequent_query_structure(),
-        0
-    ));
-}
-
-#[test]
-fn continue_loop_query_from_end() {
-    let mut interpreter = BqsqlInterpreter::new("SELECT 1 FROM dataset.table");
-    interpreter.index = 6;
-    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::From;
-
-    assert!(!continue_loop_query(
-        &interpreter,
-        &query_stage.get_subsequent_query_structure(),
-        0
-    ));
-}
-
-#[test]
-fn continue_loop_query_with() {
-    let mut interpreter = BqsqlInterpreter::new(
-        r#"WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
+    #[test]
+    fn continue_loop_query_with() {
+        let mut interpreter = BqsqlInterpreter::new(
+            r#"WITH q1 AS (SELECT SchoolID FROM Roster) #my_query
 SELECT *
 FROM
 (WITH q2 AS (SELECT * FROM q1),  # q1 resolves to my_query
@@ -682,14 +858,15 @@ FROM
     q1 AS (SELECT * FROM q1),  # q1 (in the query) resolves to my_query
     q4 AS (SELECT * FROM q1)   # q1 resolves to the WITH subquery on the previous line.
 SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#,
-    );
+        );
 
-    interpreter.index = 9;
-    let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::With;
+        interpreter.index = 9;
+        let query_stage: BqsqlQueryStructure = BqsqlQueryStructure::With;
 
-    assert!(continue_loop_query(
-        &interpreter,
-        &query_stage.get_subsequent_query_structure(),
-        0
-    ));
+        assert!(continue_loop_query(
+            &interpreter,
+            &query_stage.get_subsequent_query_structure(),
+            0
+        ));
+    }
 }

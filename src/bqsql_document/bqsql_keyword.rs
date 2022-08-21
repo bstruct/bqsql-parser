@@ -22,6 +22,20 @@ impl BqsqlKeyword {
             BqsqlKeyword::Order => "ORDER",
             BqsqlKeyword::Limit => "LIMIT",
             BqsqlKeyword::Offset => "OFFSET",
+
+            BqsqlKeyword::For => "FOR",
+            BqsqlKeyword::Unnest => "UNNEST",
+            BqsqlKeyword::Join => "JOIN",
+            BqsqlKeyword::Inner => "INNER",
+            BqsqlKeyword::Cross => "CROSS",
+            BqsqlKeyword::Full => "FULL",
+            BqsqlKeyword::Left => "LEFT",
+            BqsqlKeyword::Right => "RIGHT",
+            BqsqlKeyword::Pivot => "PIVOT",
+            BqsqlKeyword::Unpivot => "UNPIVOT",
+            BqsqlKeyword::Tablesample => "TABLESAMPLE",
+            BqsqlKeyword::Using => "USING",
+
         }
     }
 }

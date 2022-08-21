@@ -53,12 +53,28 @@ pub enum BqsqlDocumentItemType {
 
     Alias,
 
+    TableIdentifier, // grouping element
+    //**projectId**.datasetId.tableId
+    TableIdentifierProjectId,
+    //**`projectId.datasetId`**.tableId
+    TableIdentifierProjectIdDatasetId,
+    //projectId.**datasetId**.tableId
+    TableIdentifierDatasetId,
+    //projectId.datasetId.**tableId**
+    TableIdentifierTableId,
+    //**`projectId.datasetId.tableId`**
+    TableIdentifierProjectIdDatasetIdTableId,
+    //**`datasetId.tableId`**
+    TableIdentifierDatasetIdTableId,
+    //`projectId.datasetId.tableId` AS **alias**
+    TableIdentifierAlias,
+
     Query,
 
     QueryWith,
     //CTE stands for 'common table expressions'.
-    //The name of the table in the WITH statement
-    QueryCteName,
+    //The name of the table given in the WITH statement
+    TableCteId,
 
     QuerySelect,
     QuerySelectListItem,
@@ -97,6 +113,19 @@ pub enum BqsqlKeyword {
     Order,
     Limit,
     Offset,
+
+    For,
+    Unnest,
+    Join,
+    Inner,
+    Cross,
+    Full,
+    Left,
+    Right,
+    Pivot,
+    Unpivot,
+    Tablesample,
+    Using,
 }
 
 #[derive(Serialize, Clone)]
@@ -106,15 +135,15 @@ pub struct BqsqlDocumentSuggestion {
     pub snippet: String,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
-pub enum BqsqlDocumentSuggestionType {
-    Syntax,
-}
-
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
     fn eq(&self, other: &&BqsqlDocumentItemType) -> bool {
         self.eq(other)
     }
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum BqsqlDocumentSuggestionType {
+    Syntax,
 }
 
 impl BqsqlDocument {

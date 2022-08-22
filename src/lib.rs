@@ -23,8 +23,3 @@ pub fn suggest(bqsql: &str, line: usize, column: usize) -> JsValue {
     serde_wasm_bindgen::to_value(&suggestions).unwrap()
 }
 
-// #[wasm_bindgen]
-// pub fn get_functions_snippets() -> JsValue {
-//     // serde_wasm_bindgen::to_value(&BqsqlFunction::get_all()).unwrap()
-//     todo!()
-// }

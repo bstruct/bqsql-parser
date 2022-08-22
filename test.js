@@ -7,8 +7,8 @@ rust
 
         console.info(JSON.stringify(p));
 
-        const p2 = m.get_all_functions();
-        console.info(JSON.stringify(p2));        
+        const p2 = m.suggest('SELECT *, \nFROM dataset_id.table_id', 0, 10);
+        console.info(JSON.stringify(p2));
 
 
     })

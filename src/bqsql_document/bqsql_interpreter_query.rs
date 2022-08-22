@@ -1,3 +1,6 @@
+use lazy_static::lazy_static;
+use regex::Regex;
+
 use super::{
     bqsql_delimiter::BqsqlDelimiter,
     bqsql_interpreter::{
@@ -36,140 +39,6 @@ impl BqsqlInterpreter<'_> {
         None
     }
 }
-
-// fn handle_with(&mut self) -> Option<BqsqlDocumentItem> {
-//     if self.is_keyword(self.index, BqsqlKeyword::With) {
-//         let mut items = Vec::from(vec![
-//             self.handle_keyword(BqsqlKeyword::With),      //WITH
-//             self.handle_keyword(BqsqlKeyword::Recursive), //RECURSIVE?
-//         ]);
-
-//         let mut monitor_index = self.index;
-
-//         loop {
-//             items.append(&mut Vec::from(vec![
-//                 self.handle_cte_name(), //common table expression (CTE)
-//                 self.handle_keyword(BqsqlKeyword::As),
-//                 self.handle_delimiter(BqsqlDelimiter::ParenthesesOpen),
-//                 self.handle_query(), //expected mandatory select statement
-//                 self.handle_delimiter(BqsqlDelimiter::ParenthesesClose),
-//                 self.handle_delimiter(BqsqlDelimiter::Comma),
-//             ]));
-
-//             if monitor_index == self.index {
-//                 break;
-//             } else {
-//                 monitor_index = self.index;
-//             }
-
-//             if items.last().is_none() {
-//                 break;
-//             }
-//         }
-
-//         return Some(BqsqlDocumentItem::new(
-//             BqsqlDocumentItemType::QueryWith,
-//             items,
-//         ));
-//     }
-//     None
-// }
-
-// fn get_select_list(&mut self) -> Vec<Option<BqsqlDocumentItem>> {
-//     //list to return with the found BqsqlDocumentItemType::QuerySelectListItem
-//     let mut list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
-//     //gather all elements inside the current BqsqlDocumentItemType::QuerySelectListItem
-//     let mut item_list: Vec<Option<BqsqlDocumentItem>> = Vec::new();
-
-//     let mut monitor_index = self.index;
-
-//     let mut count_open_parentheses: usize = 0;
-
-//     loop {
-//         //line comment
-//         if self.is_line_comment(self.index) {
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::LineComment));
-//         }
-
-//         //query
-//         if self.is_query() {
-//             item_list.push(self.handle_query());
-//         }
-
-//         if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesOpen) {
-//             //parentheses open
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesOpen));
-//             count_open_parentheses += 1;
-//         } else if self.is_delimiter(self.index, BqsqlDelimiter::ParenthesesClose) {
-//             //parentheses close
-//             if count_open_parentheses == 0 {
-//                 break;
-//             }
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::ParenthesesClose));
-//             count_open_parentheses = std::cmp::max(0, count_open_parentheses - 1);
-//             continue;
-//         } else if self.is_number() {
-//             //number
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Number));
-//         } else if self.is_string(self.index) {
-//             //string
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::String));
-//         } else if self.is_keyword(self.index, BqsqlKeyword::As) {
-//             //keyword AS
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::KeywordAs));
-//         } else if self.is_delimiter(self.index, BqsqlDelimiter::Comma) {
-//             //comma
-//             item_list.push(self.handle_document_item(BqsqlDocumentItemType::Comma));
-//         } else if let Some(operators) = self.find_any_operator(self.index) {
-//             //any operator
-//             let mut len = operators.to_vec().len();
-//             while len > 0 {
-//                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Operator));
-//                 len -= 1;
-//             }
-//         } else if count_open_parentheses == 0 {
-//             if !self.is_keyword(self.index, BqsqlKeyword::From) {
-//                 item_list.push(self.handle_document_item(BqsqlDocumentItemType::Alias));
-//             }
-//         } else {
-//             item_list.push(self.handle_unknown());
-//         }
-
-//         if monitor_index == self.index {
-//             break;
-//         } else {
-//             monitor_index = self.index;
-//         }
-
-//         if count_open_parentheses == 0
-//             && item_list.len() > 0
-//             && item_list.last().is_some()
-//             // .is_some_and(|i| true) // is_some_and is not complete at the moment
-//             && self.is_delimiter(self.index - 1, BqsqlDelimiter::Comma)
-//         {
-//             list.push(Some(BqsqlDocumentItem::new(
-//                 BqsqlDocumentItemType::QuerySelectListItem,
-//                 item_list,
-//             )));
-
-//             item_list = Vec::new();
-//             continue;
-//         }
-
-//         if (!self.is_in_range(self.index)) || self.is_keyword(self.index, BqsqlKeyword::From) {
-//             break;
-//         }
-//     }
-
-//     if item_list.len() > 0 {
-//         list.push(Some(BqsqlDocumentItem::new(
-//             BqsqlDocumentItemType::QuerySelectListItem,
-//             item_list,
-//         )));
-//     }
-
-//     list
-// }
 
 fn is_query(interpreter: &BqsqlInterpreter) -> bool {
     is_keyword(interpreter, interpreter.index, BqsqlKeyword::With)
@@ -424,13 +293,25 @@ fn document_item_handler_with(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
 }
 
 fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<BqsqlDocumentItem> {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"^\w+").unwrap();
+    }
+
     if is_keyword(interpreter, interpreter.index - 1, BqsqlKeyword::From) {
         let mut items: Vec<Option<BqsqlDocumentItem>> = Vec::new();
 
         let mut count_positions: usize = 0;
         let mut index_positions: usize = interpreter.index;
         loop {
-            count_positions += 1;
+            if is_string_identifier(interpreter, interpreter.index) {
+                count_positions += 1;
+            } else if let Some(string_in_range) =
+                get_string_in_range(interpreter, interpreter.index)
+            {
+                if RE.is_match(string_in_range) {
+                    count_positions += 1;
+                }
+            }
 
             if !is_delimiter(interpreter, index_positions + 1, BqsqlDelimiter::Dot) {
                 break;
@@ -536,11 +417,15 @@ fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
 
         if is_in_range(interpreter, interpreter.index) {
             if !is_inner_from_expected_keyword(interpreter, interpreter.index) {
-                items.push(handle_document_item(
-                    interpreter,
-                    BqsqlDocumentItemType::TableIdentifierAlias,
-                    None,
-                ));
+                if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
+                    if RE.is_match(string_in_range) {
+                        items.push(handle_document_item(
+                            interpreter,
+                            BqsqlDocumentItemType::TableIdentifierAlias,
+                            None,
+                        ));
+                    }
+                }
             }
         }
 

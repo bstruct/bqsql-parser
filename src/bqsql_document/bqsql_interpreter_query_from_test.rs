@@ -55,6 +55,56 @@ fn query_from_dataset_dot_table() {
 
 }
 
+
+#[test]
+fn query_from_query() {
+    let document =
+        BqsqlDocument::parse("SELECT column_a, column_a, column_c, FROM (SELECT * FROM dataset_id.table_id)");
+
+    assert_eq!(1, document.items.len());
+
+    //
+    //Query
+    let query = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
+    assert_eq!(None, query.range);
+    assert_eq!(2, query.items.len());
+
+    //--- QuerySelect
+    let query_select = &query.items[0];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(4, query_select.items.len());
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_select.items[0].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[1].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[2].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[3].item_type
+    );
+
+    //--- QueryFrom
+    let query_from = &query.items[1];
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
+    assert_eq!(None, query_from.range);
+    assert_eq!(4, query_from.items.len());
+
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+    assert_eq!(BqsqlDocumentItemType::ParenthesesOpen, query_from.items[1].item_type);
+    assert_eq!(BqsqlDocumentItemType::Query, query_from.items[2].item_type);
+    assert_eq!(BqsqlDocumentItemType::ParenthesesClose, query_from.items[3].item_type);
+
+}
+
 #[test]
 fn query_from_full_table_name() {
     let document = BqsqlDocument::parse(
@@ -346,11 +396,12 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
 
     //--- --- --- --- QueryCteName
     assert_eq!(
-        BqsqlDocumentItemType::Unknown,
+        BqsqlDocumentItemType::TableIdentifier,
         query_1_from.items[1].item_type
     );
-    assert_eq!(Some([0, 33, 39]), query_1_from.items[1].range);
-    assert_eq!(0, query_1_from.items[1].items.len());
+    assert_eq!(None, query_1_from.items[1].range);
+    assert_eq!(1, query_1_from.items[1].items.len());
+    assert_eq!(Some([0, 33, 39]), query_1_from.items[1].items[0].range);
 
     //--- --- ParenthesesClose
     assert_eq!(

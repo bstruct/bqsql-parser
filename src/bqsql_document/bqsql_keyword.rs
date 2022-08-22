@@ -1,25 +1,5 @@
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) enum BqsqlKeyword {
-    All,
-    As,
-    Distinct,
-    From,
-    Recursive,
-    Select,
-    Struct,
-    Value,
-    Where,
-    With,
-    Group,
-    By,
-    Rollup,
-    Having,
-    Qualify,
-    Window,
-    Order,
-    Limit,
-    Offset,
-}
+use super::BqsqlKeyword;
+
 impl BqsqlKeyword {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
@@ -42,6 +22,20 @@ impl BqsqlKeyword {
             BqsqlKeyword::Order => "ORDER",
             BqsqlKeyword::Limit => "LIMIT",
             BqsqlKeyword::Offset => "OFFSET",
+
+            BqsqlKeyword::For => "FOR",
+            BqsqlKeyword::Unnest => "UNNEST",
+            BqsqlKeyword::Join => "JOIN",
+            BqsqlKeyword::Inner => "INNER",
+            BqsqlKeyword::Cross => "CROSS",
+            BqsqlKeyword::Full => "FULL",
+            BqsqlKeyword::Left => "LEFT",
+            BqsqlKeyword::Right => "RIGHT",
+            BqsqlKeyword::Pivot => "PIVOT",
+            BqsqlKeyword::Unpivot => "UNPIVOT",
+            BqsqlKeyword::Tablesample => "TABLESAMPLE",
+            BqsqlKeyword::Using => "USING",
+
         }
     }
 }

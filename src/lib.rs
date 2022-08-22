@@ -1,7 +1,7 @@
 use bqsql_document::BqsqlDocument;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-use crate::bqsql_function::BqsqlFunction;
+// use crate::bqsql_function::BqsqlFunction;
 
 mod bqsql_document;
 mod bqsql_function;
@@ -17,6 +17,9 @@ pub fn parse(bqsql: &str) -> JsValue {
 }
 
 #[wasm_bindgen]
-pub fn get_all_functions() -> JsValue {
-    serde_wasm_bindgen::to_value(&BqsqlFunction::get_all()).unwrap()
+pub fn suggest(bqsql: &str, line: usize, column: usize) -> JsValue {
+    let suggestions = BqsqlDocument::suggest(bqsql, [line, column]);
+
+    serde_wasm_bindgen::to_value(&suggestions).unwrap()
 }
+

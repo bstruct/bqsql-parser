@@ -9,7 +9,7 @@
 
 // impl BqsqlDocument {
 //     pub(crate) fn parse(bqsql: &str) -> BqsqlDocument {
-        
+
 //         return BqsqlInterpreter::new(bqsql).iterate().compile();
 
 //         // let mut items: Vec<BqsqlDocumentItem> = Vec::new();

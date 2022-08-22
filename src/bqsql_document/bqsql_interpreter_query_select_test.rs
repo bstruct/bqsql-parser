@@ -1,4 +1,4 @@
-use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType};
+use crate::bqsql_document::{BqsqlDocument, BqsqlDocumentItemType, BqsqlKeyword};
 
 #[test]
 fn empty_string() {
@@ -78,7 +78,7 @@ fn tiny_query() {
     assert_eq!(Some([0, 0, 6]), k_0.range);
     assert_eq!(0, k_0.items.len());
 
-    //--- --- 
+    //--- ---
     let query_list_item_0 = &query_select.items[1];
     assert_eq!(
         BqsqlDocumentItemType::QuerySelectListItem,
@@ -252,7 +252,6 @@ fn comment_and_tiny_query() {
 
 #[test]
 fn select_select_as_struct_query() {
-    
     let document =
         BqsqlDocument::parse("SELECT (SELECT AS STRUCT 2+2 AS asas, 'ASDASD' AS qweqwe) AS XXX");
 
@@ -398,16 +397,18 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 29, 31]), list_item_0.items[3].range);
     assert_eq!(0, list_item_0.items[3].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), list_item_0.items[3].keyword);
 
     //--- --- --- --- --- --- ALIAS
     assert_eq!(BqsqlDocumentItemType::Alias, list_item_0.items[4].item_type);
     assert_eq!(Some([0, 32, 36]), list_item_0.items[4].range);
     assert_eq!(0, list_item_0.items[4].items.len());
+    assert_eq!(None, list_item_0.items[4].keyword);
 
     //--- --- --- --- --- --- Comma
     assert_eq!(BqsqlDocumentItemType::Comma, list_item_0.items[5].item_type);
@@ -433,11 +434,12 @@ fn select_select_as_struct_query() {
 
     //--- --- --- --- --- --- KeywordAs
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         list_item_1.items[1].item_type
     );
     assert_eq!(Some([0, 47, 49]), list_item_1.items[1].range);
     assert_eq!(0, list_item_1.items[1].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), list_item_1.items[1].keyword);
 
     //--- --- --- --- --- --- ALIAS
     assert_eq!(BqsqlDocumentItemType::Alias, list_item_1.items[2].item_type);
@@ -454,11 +456,12 @@ fn select_select_as_struct_query() {
 
     //--- --- --- AS_ALIAS
     assert_eq!(
-        BqsqlDocumentItemType::KeywordAs,
+        BqsqlDocumentItemType::Keyword,
         query_list_item_0.items[3].item_type
     );
     assert_eq!(Some([0, 58, 60]), query_list_item_0.items[3].range);
     assert_eq!(0, query_list_item_0.items[3].items.len());
+    assert_eq!(Some(BqsqlKeyword::As), query_list_item_0.items[3].keyword);
 
     //--- --- --- ALIAS
     assert_eq!(
@@ -470,4 +473,32 @@ fn select_select_as_struct_query() {
 
     //
     //
+}
+
+
+#[test]
+fn query_select_trailing_comma(){
+    let document = BqsqlDocument::parse(
+        r#"SELECT column_a, column_a, column_c, FROM dataset_id.table_id"#,
+    );
+
+    assert_eq!(1, document.items.len());
+
+    //
+    //Query
+    let query = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
+    assert_eq!(None, query.range);
+    assert_eq!(2, query.items.len());
+
+    //--- QuerySelect
+    let query_select = &query.items[0];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(4, query_select.items.len());
+    assert_eq!(BqsqlDocumentItemType::Keyword, query_select.items[0].item_type);
+    assert_eq!(BqsqlDocumentItemType::QuerySelectListItem, query_select.items[1].item_type);
+    assert_eq!(BqsqlDocumentItemType::QuerySelectListItem, query_select.items[2].item_type);
+    assert_eq!(BqsqlDocumentItemType::QuerySelectListItem, query_select.items[3].item_type);
+
 }

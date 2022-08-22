@@ -19,7 +19,7 @@
 // [ QUALIFY bool_expression ]
 // [ WINDOW window_clause ]
 
-use super::{bqsql_keyword::BqsqlKeyword, BqsqlDocumentItemType};
+use super::{BqsqlDocumentItemType, BqsqlKeyword};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum BqsqlQueryStructure {
@@ -149,5 +149,4 @@ impl BqsqlQueryStructure {
             }
         }
     }
-
 }

@@ -227,25 +227,26 @@ comments in the beginning will not match
  */
 pub(crate) fn get_relevant_keywords_match(
     interpreter: &BqsqlInterpreter,
+    index: usize,
     keywords_to_match: &Vec<Vec<BqsqlKeyword>>,
 ) -> Option<Vec<BqsqlKeyword>> {
     //do not accept comments in the beginning
-    if is_line_comment(interpreter, interpreter.index) {
+    if is_line_comment(interpreter, index) {
         return None;
     }
 
     for keywords in keywords_to_match {
         let mut matched = 0;
-        let mut index = interpreter.index;
+        let mut i = index;
 
-        while is_in_range(interpreter, index) && matched < keywords.len() {
+        while is_in_range(interpreter, i) && matched < keywords.len() {
             let keyword = keywords[matched];
 
-            if is_line_comment(interpreter, index) {
-                index += 1;
+            if is_line_comment(interpreter, i) {
+                i += 1;
             } else {
-                if is_keyword(interpreter, index, keyword) {
-                    index += 1;
+                if is_keyword(interpreter, i, keyword) {
+                    i += 1;
                     matched += 1;
                 } else {
                     break;
@@ -273,7 +274,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT 1");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter,interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -286,7 +287,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT 1,2,3");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -299,7 +300,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT ALL 1,2,3");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -313,7 +314,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT\n DISTINCT 1,2,3");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -327,7 +328,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT AS STRUCT 1,2,3");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -342,7 +343,7 @@ mod tests_get_relevant_keywords_match {
         let interpreter = BqsqlInterpreter::new("SELECT AS\n--jsafkljsafd\n VALUE 1,2,3");
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -359,7 +360,7 @@ mod tests_get_relevant_keywords_match {
         interpreter.index = 9;
         let keywords_to_match = BqsqlQueryStructure::From.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -374,7 +375,7 @@ mod tests_get_relevant_keywords_match {
         interpreter.index = 11;
         let keywords_to_match = BqsqlQueryStructure::Where.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_some());
         let keywords = keywords_option.unwrap();
@@ -398,7 +399,7 @@ SELECT * FROM q1);             # q1 resolves to the third inner WITH subquery."#
         interpreter.index = 9;
         let keywords_to_match = BqsqlQueryStructure::Select.get_keywords();
 
-        let keywords_option = get_relevant_keywords_match(&interpreter, &keywords_to_match);
+        let keywords_option = get_relevant_keywords_match(&interpreter, interpreter.index, &keywords_to_match);
 
         assert!(keywords_option.is_none());
     }

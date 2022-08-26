@@ -132,7 +132,7 @@ pub enum BqsqlKeyword {
 
 impl PartialEq<&BqsqlDocumentItemType> for BqsqlDocumentItemType {
     fn eq(&self, other: &&BqsqlDocumentItemType) -> bool {
-        self.eq(other)
+        &self == other
     }
 }
 
@@ -151,7 +151,7 @@ pub enum BqsqlDocumentSuggestionType {
 
 impl PartialEq<&BqsqlDocumentSuggestionType> for BqsqlDocumentSuggestionType {
     fn eq(&self, other: &&BqsqlDocumentSuggestionType) -> bool {
-        self.eq(other)
+        &self == other
     }
 }
 

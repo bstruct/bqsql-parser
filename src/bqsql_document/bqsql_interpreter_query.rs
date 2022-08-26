@@ -83,9 +83,11 @@ fn handle_query_stage_default(
     // 1) confirm that they are found
     // 2) if they are found, they are added as keywords to the document_item items
     let keywords_to_match = &query_stage.get_keywords();
-    if let Some(keywords_match) =
-        bqsql_interpreter::get_relevant_keywords_match(interpreter, keywords_to_match)
-    {
+    if let Some(keywords_match) = bqsql_interpreter::get_relevant_keywords_match(
+        interpreter,
+        interpreter.index,
+        keywords_to_match,
+    ) {
         let mut items: Vec<Option<BqsqlDocumentItem>> =
             Vec::from(handle_query_keywords(interpreter, keywords_match));
 
@@ -417,13 +419,20 @@ fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
 
         if is_in_range(interpreter, interpreter.index) {
             if !is_inner_from_expected_keyword(interpreter, interpreter.index) {
-                if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
-                    if RE.is_match(string_in_range) {
-                        items.push(handle_document_item(
-                            interpreter,
-                            BqsqlDocumentItemType::TableIdentifierAlias,
-                            None,
-                        ));
+                let subsequent_query_structure: &Vec<BqsqlQueryStructure> =
+                    &BqsqlQueryStructure::From.get_subsequent_query_structure();
+
+                if !is_subsequent_query_structure(interpreter, interpreter.index +1 , subsequent_query_structure) {
+                    if let Some(string_in_range) =
+                        get_string_in_range(interpreter, interpreter.index)
+                    {
+                        if RE.is_match(string_in_range) {
+                            items.push(handle_document_item(
+                                interpreter,
+                                BqsqlDocumentItemType::TableIdentifierAlias,
+                                None,
+                            ));
+                        }
                     }
                 }
             }
@@ -464,9 +473,11 @@ fn handle_query_stage_select(
     // 1) confirm that they are found
     // 2) if they are found, they are added as keywords to the document_item items
     let keywords_to_match = &BqsqlQueryStructure::Select.get_keywords();
-    if let Some(keywords_match) =
-        bqsql_interpreter::get_relevant_keywords_match(interpreter, keywords_to_match)
-    {
+    if let Some(keywords_match) = bqsql_interpreter::get_relevant_keywords_match(
+        interpreter,
+        interpreter.index,
+        keywords_to_match,
+    ) {
         let mut items: Vec<Option<BqsqlDocumentItem>> =
             Vec::from(handle_query_keywords(interpreter, keywords_match));
 
@@ -677,13 +688,21 @@ fn continue_loop_query(
         }
 
         //are any of the subsequent keywords of the query found?
-        return !subsequent_query_structure
-            .iter()
-            .map(|i| i.get_keywords())
-            .any(|i| get_relevant_keywords_match(&interpreter, &i).is_some());
+        return is_subsequent_query_structure(interpreter, interpreter.index, subsequent_query_structure);
     }
 
     false
+}
+
+fn is_subsequent_query_structure(
+    interpreter: &BqsqlInterpreter,
+    index: usize,
+    subsequent_query_structure: &Vec<BqsqlQueryStructure>,
+) -> bool {
+    return !subsequent_query_structure
+        .iter()
+        .map(|i| i.get_keywords())
+        .any(|i| get_relevant_keywords_match(&interpreter, index, &i).is_some());
 }
 
 #[cfg(test)]

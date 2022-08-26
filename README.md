@@ -35,3 +35,8 @@ https://docs.rs/regex/latest/regex/
 
 #### build the package
  wasm-pack build --target nodejs
+
+
+#### built js is wrong
+
+const path = require('path').join(__dirname, '..', 'node_modules', '@bstruct', 'bqsql-parser', 'bqsql_parser_bg.wasm');

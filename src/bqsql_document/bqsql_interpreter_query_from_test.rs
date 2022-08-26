@@ -42,24 +42,121 @@ fn query_from_dataset_dot_table() {
     assert_eq!(None, query_from.range);
     assert_eq!(2, query_from.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
 
     let table_identifier = &query_from.items[1];
-    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifier,
+        table_identifier.item_type
+    );
     assert_eq!(None, table_identifier.range);
     assert_eq!(3, table_identifier.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectId, table_identifier.items[0].item_type);
-    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[1].item_type);
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierTableId, table_identifier.items[2].item_type);
-
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierProjectId,
+        table_identifier.items[0].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::Dot,
+        table_identifier.items[1].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierTableId,
+        table_identifier.items[2].item_type
+    );
 }
 
+#[test]
+fn query_from_string_identifier() {
+    let document = BqsqlDocument::parse(
+        r#"
+SELECT 
+    "this is a \" -- string ",  --test, another `table` 123 \"back\" to 'dust'a
+    wqert AS something,
+    123 as something_else,
+    qwer AS new_column,
+FROM `Chigau.Events`
+order by timestamp;
+        "#,
+    );
+
+    assert_eq!(1, document.items.len());
+
+    //
+    //Query
+    let query = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
+    assert_eq!(None, query.range);
+    assert_eq!(4, query.items.len());
+
+    //--- QuerySelect
+    let query_select = &query.items[0];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(5, query_select.items.len());
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_select.items[0].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[1].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[2].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[3].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::QuerySelectListItem,
+        query_select.items[4].item_type
+    );
+
+    //--- QueryFrom
+    let query_from = &query.items[1];
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
+    assert_eq!(None, query_from.range);
+    assert_eq!(2, query_from.items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
+
+    let table_identifier = &query_from.items[1];
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifier,
+        table_identifier.item_type
+    );
+    assert_eq!(None, table_identifier.range);
+    assert_eq!(1, table_identifier.items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierDatasetIdTableId,
+        table_identifier.items[0].item_type
+    );
+
+    let query_order_by = &query.items[2];
+    assert_eq!(
+        BqsqlDocumentItemType::QueryOrderBy,
+        query_order_by.item_type
+    );
+
+    //;
+    assert_eq!(BqsqlDocumentItemType::Semicolon, &query.items[3].item_type);
+}
 
 #[test]
 fn query_from_query() {
-    let document =
-        BqsqlDocument::parse("SELECT column_a, column_a, column_c, FROM (SELECT * FROM dataset_id.table_id)");
+    let document = BqsqlDocument::parse(
+        "SELECT column_a, column_a, column_c, FROM (SELECT * FROM dataset_id.table_id)",
+    );
 
     assert_eq!(1, document.items.len());
 
@@ -98,11 +195,19 @@ fn query_from_query() {
     assert_eq!(None, query_from.range);
     assert_eq!(4, query_from.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
-    assert_eq!(BqsqlDocumentItemType::ParenthesesOpen, query_from.items[1].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesOpen,
+        query_from.items[1].item_type
+    );
     assert_eq!(BqsqlDocumentItemType::Query, query_from.items[2].item_type);
-    assert_eq!(BqsqlDocumentItemType::ParenthesesClose, query_from.items[3].item_type);
-
+    assert_eq!(
+        BqsqlDocumentItemType::ParenthesesClose,
+        query_from.items[3].item_type
+    );
 }
 
 #[test]
@@ -132,16 +237,23 @@ fn query_from_full_table_name() {
     assert_eq!(None, query_from.range);
     assert_eq!(2, query_from.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
 
     let table_identifier = &query_from.items[1];
-    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifier,
+        table_identifier.item_type
+    );
     assert_eq!(None, table_identifier.range);
     assert_eq!(1, table_identifier.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId, table_identifier.items[0].item_type);
-
-
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId,
+        table_identifier.items[0].item_type
+    );
 }
 
 #[test]
@@ -171,19 +283,39 @@ fn query_from_project_in_quotes() {
     assert_eq!(None, query_from.range);
     assert_eq!(2, query_from.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::Keyword, query_from.items[0].item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
 
     let table_identifier = &query_from.items[1];
-    assert_eq!(BqsqlDocumentItemType::TableIdentifier, table_identifier.item_type);
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifier,
+        table_identifier.item_type
+    );
     assert_eq!(None, table_identifier.range);
     assert_eq!(5, table_identifier.items.len());
 
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierProjectId, table_identifier.items[0].item_type);
-    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[1].item_type);
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierDatasetId, table_identifier.items[2].item_type);
-    assert_eq!(BqsqlDocumentItemType::Dot, table_identifier.items[3].item_type);
-    assert_eq!(BqsqlDocumentItemType::TableIdentifierTableId, table_identifier.items[4].item_type);
-
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierProjectId,
+        table_identifier.items[0].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::Dot,
+        table_identifier.items[1].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierDatasetId,
+        table_identifier.items[2].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::Dot,
+        table_identifier.items[3].item_type
+    );
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierTableId,
+        table_identifier.items[4].item_type
+    );
 }
 
 #[test]

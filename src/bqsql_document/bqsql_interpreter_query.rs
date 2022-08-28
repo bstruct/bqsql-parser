@@ -329,18 +329,26 @@ fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
         if count_positions == 1 {
             if is_string_identifier(interpreter, interpreter.index) {
                 if let Some(string_in_range) = get_string_in_range(interpreter, interpreter.index) {
-                    if string_in_range.chars().filter(|c| c == &'.').count() == 1 {
-                        items.push(handle_document_item(
-                            interpreter,
-                            BqsqlDocumentItemType::TableIdentifierDatasetIdTableId,
-                            None,
-                        ));
-                    } else {
-                        items.push(handle_document_item(
-                            interpreter,
-                            BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId,
-                            None,
-                        ));
+                    let char_count = string_in_range.chars().filter(|c| c == &'.').count();
+
+                    match char_count {
+                        1 => {
+                            items.push(handle_document_item(
+                                interpreter,
+                                BqsqlDocumentItemType::TableIdentifierDatasetIdTableId,
+                                None,
+                            ));
+                        }
+                        2 => {
+                            items.push(handle_document_item(
+                                interpreter,
+                                BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId,
+                                None,
+                            ));
+                        }
+                        _ => {
+                            return handle_unknown(interpreter);
+                        }
                     }
                 }
             } else {
@@ -422,7 +430,11 @@ fn document_item_handler_from(interpreter: &mut BqsqlInterpreter) -> Option<Bqsq
                 let subsequent_query_structure: &Vec<BqsqlQueryStructure> =
                     &BqsqlQueryStructure::From.get_subsequent_query_structure();
 
-                if !is_subsequent_query_structure(interpreter, interpreter.index +1 , subsequent_query_structure) {
+                if !is_subsequent_query_structure(
+                    interpreter,
+                    interpreter.index + 1,
+                    subsequent_query_structure,
+                ) {
                     if let Some(string_in_range) =
                         get_string_in_range(interpreter, interpreter.index)
                     {
@@ -688,7 +700,11 @@ fn continue_loop_query(
         }
 
         //are any of the subsequent keywords of the query found?
-        return is_subsequent_query_structure(interpreter, interpreter.index, subsequent_query_structure);
+        return is_subsequent_query_structure(
+            interpreter,
+            interpreter.index,
+            subsequent_query_structure,
+        );
     }
 
     false

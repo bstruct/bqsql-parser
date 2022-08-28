@@ -153,6 +153,94 @@ order by timestamp;
 }
 
 #[test]
+fn query_from_full_string_identifier() {
+    let document = BqsqlDocument::parse(
+        r#"
+        SELECT 
+            pimExportDate, 
+            Combi_number,
+            columnC,
+            
+            -- Flavour_Copy
+        FROM `damiao-project-1.PvhTest.PimExport` pim
+        WHERE 
+            pimExportDate = "2022-03-23"
+            -- AND (
+            --     Combi_number = '0000F3223E001'
+            --     OR Combi_number = "0000F2934E101"
+            -- )
+        LIMIT 101;"#,
+    );
+
+    assert_eq!(1, document.items.len());
+
+    //
+    //Query
+    let query = &document.items[0];
+    assert_eq!(BqsqlDocumentItemType::Query, query.item_type);
+    assert_eq!(None, query.range);
+    assert_eq!(5, query.items.len());
+
+    //--- QuerySelect
+    let query_select = &query.items[0];
+    assert_eq!(BqsqlDocumentItemType::QuerySelect, query_select.item_type);
+    assert_eq!(None, query_select.range);
+    assert_eq!(5, query_select.items.len());
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_select.items[0].item_type
+    );
+  
+    //--- QueryFrom
+    let query_from = &query.items[1];
+    assert_eq!(BqsqlDocumentItemType::QueryFrom, query_from.item_type);
+    assert_eq!(None, query_from.range);
+    assert_eq!(2, query_from.items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::Keyword,
+        query_from.items[0].item_type
+    );
+
+    let table_identifier = &query_from.items[1];
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifier,
+        table_identifier.item_type
+    );
+    assert_eq!(None, table_identifier.range);
+    assert_eq!(2, table_identifier.items.len());
+
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierProjectIdDatasetIdTableId,
+        table_identifier.items[0].item_type
+    );
+    assert_eq!(Some([7, 13, 49]), table_identifier.items[0].range);
+
+    assert_eq!(
+        BqsqlDocumentItemType::TableIdentifierAlias,
+        table_identifier.items[1].item_type
+    );
+    assert_eq!(Some([7, 50, 53]), table_identifier.items[1].range);
+
+    //where
+    let query_where = &query.items[2];
+    assert_eq!(
+        BqsqlDocumentItemType::QueryWhere,
+        query_where.item_type
+    );
+
+    //where
+    let query_limit = &query.items[3];
+    assert_eq!(
+        BqsqlDocumentItemType::QueryLimit,
+        query_limit.item_type
+    );
+
+    //;
+    assert_eq!(BqsqlDocumentItemType::Semicolon, &query.items[4].item_type);
+}
+
+#[test]
 fn query_from_query() {
     let document = BqsqlDocument::parse(
         "SELECT column_a, column_a, column_c, FROM (SELECT * FROM dataset_id.table_id)",

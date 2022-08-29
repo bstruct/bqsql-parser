@@ -45,11 +45,16 @@ fn suggest_in_select(
                 })
                 .collect();
 
-            suggestions.append(&mut vec![BqsqlDocumentSuggestion {
-                suggestion_type: BqsqlDocumentSuggestionType::Function,
-                table_identifier: None,
-                snippets: Some(BqsqlFunction::AnyValue.get_snippets()),
-            }]);
+            let mut all_functions: Vec<BqsqlDocumentSuggestion> = BqsqlFunction::get_all()
+                .iter()
+                .map(|i| BqsqlDocumentSuggestion {
+                    suggestion_type: BqsqlDocumentSuggestionType::Function,
+                    table_identifier: None,
+                    snippets: Some(i.get_snippets()),
+                })
+                .collect();
+
+            suggestions.append(&mut all_functions);
 
             return suggestions;
         }

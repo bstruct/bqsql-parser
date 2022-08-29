@@ -218,7 +218,7 @@ mod tests {
         let suggestions =
             BqsqlInterpreter::suggest("SELECT a,b,c,  FROM dataset_id.table_id", [0, 14]);
 
-        assert_eq!(2, suggestions.len());
+        assert_eq!(16, suggestions.len());
 
         assert_eq!(
             BqsqlDocumentSuggestionType::TableColumns,

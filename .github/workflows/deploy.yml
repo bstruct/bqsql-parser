@@ -30,7 +30,7 @@ jobs:
     - name: wasm-pack install
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     - name: wasm-pack build
-      run: wasm-pack build --target nodejs
+      run: wasm-pack build --target bundler
     - name: install more utils
       run: sudo apt install moreutils -y
     - name: change name in package.json

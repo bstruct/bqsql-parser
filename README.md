@@ -34,7 +34,12 @@ https://code.visualstudio.com/docs/cpp/config-wsl#_set-up-your-linux-environment
 https://docs.rs/regex/latest/regex/
 
 #### build the package
- wasm-pack build --target nodejs
+wasm-pack build --target nodejs 
+wasm-pack build --target bundler
+
+xxx wasm-pack build --target web
+xxx--no-typescript
+xxx--out-dir static node_modules/@bstruct/bqsql-parser/bqsql_parser_bg.wasm
 
 
 #### built js is wrong

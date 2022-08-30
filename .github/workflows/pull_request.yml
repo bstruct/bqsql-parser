@@ -21,4 +21,4 @@ jobs:
     - name: wasm-pack install
       run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     - name: wasm-pack build
-      run: wasm-pack build --target nodejs
+      run: wasm-pack build --target bundler
